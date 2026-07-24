@@ -589,6 +589,96 @@
   .connection-status.is-error .run-log-dot{
     background: #d1453b;
   }
+
+  /* Masterdata: voorraadoverzicht */
+  .md-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 16px;
+    flex-wrap:wrap;
+    margin-bottom: 4px;
+  }
+  .md-search{
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    background: #fff;
+  }
+  .md-search:focus{
+    outline:none;
+    border-color: var(--accent-strong);
+    box-shadow: 0 0 0 3px var(--accent-tint);
+  }
+  .md-banner{
+    font-size: 13px;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 12px 0 0;
+    line-height: 1.5;
+  }
+  .md-banner-error{
+    background: #fbe9e7;
+    color: #a3392b;
+  }
+  .md-banner-info{
+    background: var(--accent-tint);
+    color: var(--accent-strong);
+  }
+  .md-section-title{
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+  .md-table-wrap{
+    max-height: 420px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .md-table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .md-table th{
+    position: sticky;
+    top: 0;
+    background: var(--accent-tint);
+    color: var(--accent-strong);
+    text-align: left;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .md-table td{
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .md-table tbody tr:last-child td{
+    border-bottom: none;
+  }
+  .md-table tbody tr:hover{
+    background: var(--bg);
+  }
+  .md-table td.md-num{
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .md-empty{
+    padding: 24px 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
   .password-wrap{
     display:flex;
     align-items:center;
@@ -634,6 +724,15 @@
 
     <nav class="sidebar-nav">
       <div class="nav-section-label" id="navGeneralLabel">Algemeen</div>
+      <div class="nav-item" data-page="masterdata">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"/>
+            <path d="M3 10h18M9 4v16"/>
+          </svg>
+        </span>
+        <span class="nav-label" id="navMasterdataLabel">Masterdata</span>
+      </div>
       <div class="nav-item" data-page="settings">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -836,6 +935,74 @@
        </div>
      </div>
 
+     <div id="page-masterdata" style="display:none;">
+       <div class="card">
+         <div class="settings-label" id="masterdataTitle">Voorraad — Elmarc &amp; Elmarc_B2B</div>
+         <div class="settings-desc" id="masterdataDesc">
+           Actuele voorraad per magazijn, rechtstreeks opgehaald uit Monta WMS.
+         </div>
+
+         <div class="divider"></div>
+
+         <div class="md-toolbar">
+           <button type="button" class="btn btn-secondary" id="stockRefreshBtn">
+             <span class="btn-icon">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M4 4v6h6"/>
+                 <path d="M20 20v-6h-6"/>
+                 <path d="M4.5 15a8 8 0 0 0 14.6 2M19.5 9A8 8 0 0 0 4.9 7"/>
+               </svg>
+             </span>
+             <span class="btn-label" id="stockRefreshBtnLabel">Verversen</span>
+           </button>
+           <input type="text" class="md-search" id="stockSearchInput" placeholder="Zoek op SKU of naam…">
+         </div>
+
+         <div class="run-log" id="stockMetaLog">
+           <span class="run-log-dot"></span>
+           <span id="stockMetaLogText">Nog niet geladen.</span>
+         </div>
+
+         <div class="md-banner md-banner-error" id="stockErrorBanner" style="display:none;"></div>
+         <div class="md-banner md-banner-info" id="stockTruncatedBanner" style="display:none;"></div>
+
+         <div class="divider"></div>
+
+         <h3 class="md-section-title" id="stockPerWarehouseTitle">Voorraad per magazijn</h3>
+         <div class="md-table-wrap">
+           <table class="md-table">
+             <thead>
+               <tr>
+                 <th id="colSkuLabel1">SKU</th>
+                 <th id="colDescriptionLabel1">Naam</th>
+                 <th id="colElmarcLabel">Elmarc</th>
+                 <th id="colElmarcB2BLabel">Elmarc_B2B</th>
+               </tr>
+             </thead>
+             <tbody id="stockPerWarehouseBody"></tbody>
+           </table>
+           <div class="md-empty" id="stockPerWarehouseEmpty" style="display:none;">Geen artikelen gevonden.</div>
+         </div>
+
+         <div class="divider"></div>
+
+         <h3 class="md-section-title" id="stockCombinedTitle">Gecombineerde voorraad</h3>
+         <div class="md-table-wrap">
+           <table class="md-table">
+             <thead>
+               <tr>
+                 <th id="colSkuLabel2">SKU</th>
+                 <th id="colDescriptionLabel2">Naam</th>
+                 <th id="colTotalLabel">Totaal</th>
+               </tr>
+             </thead>
+             <tbody id="stockCombinedBody"></tbody>
+           </table>
+           <div class="md-empty" id="stockCombinedEmpty" style="display:none;">Geen artikelen gevonden.</div>
+         </div>
+       </div>
+     </div>
+
     </div>
   </div>
 </div>
@@ -888,7 +1055,30 @@
       connectionOk: 'Verbinding met Monta WMS geslaagd.',
       connectionFailed: 'Verbinding met Monta WMS mislukt.',
       footerBrand: 'Elmarc · Feed manager',
-      disclaimer: 'Let op: wijzigingen hier hebben direct effect op de live voorraadfeed. Gebruik met zorg.'
+      disclaimer: 'Let op: wijzigingen hier hebben direct effect op de live voorraadfeed. Gebruik met zorg.',
+      navMasterdata: 'Masterdata',
+      topbarMasterdataTitle: 'Masterdata',
+      topbarMasterdataSubtitle: 'Voorraad per magazijn uit Monta WMS',
+      masterdataTitle: 'Voorraad — Elmarc & Elmarc_B2B',
+      masterdataDesc: 'Actuele voorraad per magazijn, rechtstreeks opgehaald uit Monta WMS.',
+      stockRefreshBtn: 'Verversen',
+      stockSearchPlaceholder: 'Zoek op SKU of naam…',
+      stockMetaIdle: 'Nog niet geladen.',
+      stockLoading: 'Voorraad wordt opgehaald…',
+      stockLastUpdated: 'Laatst bijgewerkt: {time}',
+      stockMetaError: 'Ophalen mislukt.',
+      stockNotConfigured: 'Stel eerst de Monta-koppeling in bij Instellingen.',
+      stockConnectionError: 'Monta wees de opgeslagen inloggegevens af. Controleer de instellingen.',
+      stockGenericError: 'Voorraad ophalen is niet gelukt. Probeer het opnieuw.',
+      stockTruncatedNotice: 'Let op: er waren meer artikelen dan in één keer opgehaald konden worden. Dit overzicht is mogelijk niet volledig.',
+      stockEmpty: 'Geen artikelen gevonden voor Elmarc of Elmarc_B2B.',
+      stockPerWarehouseTitle: 'Voorraad per magazijn',
+      stockCombinedTitle: 'Gecombineerde voorraad',
+      colSku: 'SKU',
+      colDescription: 'Naam',
+      colElmarc: 'Elmarc',
+      colElmarcB2B: 'Elmarc_B2B',
+      colTotal: 'Totaal'
     },
     en: {
       navGeneral: 'General',
@@ -933,7 +1123,30 @@
       connectionOk: 'Connection to Monta WMS succeeded.',
       connectionFailed: 'Connection to Monta WMS failed.',
       footerBrand: 'Elmarc · Feed manager',
-      disclaimer: 'Note: changes here directly affect the live inventory feed. Use with care.'
+      disclaimer: 'Note: changes here directly affect the live inventory feed. Use with care.',
+      navMasterdata: 'Masterdata',
+      topbarMasterdataTitle: 'Masterdata',
+      topbarMasterdataSubtitle: 'Stock per warehouse from Monta WMS',
+      masterdataTitle: 'Stock — Elmarc & Elmarc_B2B',
+      masterdataDesc: 'Current stock per warehouse, fetched directly from Monta WMS.',
+      stockRefreshBtn: 'Refresh',
+      stockSearchPlaceholder: 'Search by SKU or name…',
+      stockMetaIdle: 'Not loaded yet.',
+      stockLoading: 'Fetching stock…',
+      stockLastUpdated: 'Last updated: {time}',
+      stockMetaError: 'Fetching failed.',
+      stockNotConfigured: 'Set up the Monta connection in Settings first.',
+      stockConnectionError: 'Monta rejected the stored credentials. Check the settings.',
+      stockGenericError: 'Could not fetch stock. Please try again.',
+      stockTruncatedNotice: 'Note: there were more articles than could be fetched in one go. This overview may be incomplete.',
+      stockEmpty: 'No articles found for Elmarc or Elmarc_B2B.',
+      stockPerWarehouseTitle: 'Stock per warehouse',
+      stockCombinedTitle: 'Combined stock',
+      colSku: 'SKU',
+      colDescription: 'Name',
+      colElmarc: 'Elmarc',
+      colElmarcB2B: 'Elmarc_B2B',
+      colTotal: 'Total'
     },
     de: {
       navGeneral: 'Allgemein',
@@ -978,7 +1191,30 @@
       connectionOk: 'Verbindung zu Monta WMS erfolgreich.',
       connectionFailed: 'Verbindung zu Monta WMS fehlgeschlagen.',
       footerBrand: 'Elmarc · Feed manager',
-      disclaimer: 'Achtung: Änderungen hier wirken sich direkt auf den Live-Bestandsfeed aus. Bitte mit Vorsicht verwenden.'
+      disclaimer: 'Achtung: Änderungen hier wirken sich direkt auf den Live-Bestandsfeed aus. Bitte mit Vorsicht verwenden.',
+      navMasterdata: 'Masterdata',
+      topbarMasterdataTitle: 'Masterdata',
+      topbarMasterdataSubtitle: 'Bestand pro Lager aus Monta WMS',
+      masterdataTitle: 'Bestand — Elmarc & Elmarc_B2B',
+      masterdataDesc: 'Aktueller Bestand pro Lager, direkt aus Monta WMS abgerufen.',
+      stockRefreshBtn: 'Aktualisieren',
+      stockSearchPlaceholder: 'Suche nach SKU oder Name…',
+      stockMetaIdle: 'Noch nicht geladen.',
+      stockLoading: 'Bestand wird abgerufen…',
+      stockLastUpdated: 'Zuletzt aktualisiert: {time}',
+      stockMetaError: 'Abrufen fehlgeschlagen.',
+      stockNotConfigured: 'Richten Sie zuerst die Monta-Anbindung unter Einstellungen ein.',
+      stockConnectionError: 'Monta hat die gespeicherten Zugangsdaten abgelehnt. Prüfen Sie die Einstellungen.',
+      stockGenericError: 'Bestand konnte nicht abgerufen werden. Bitte erneut versuchen.',
+      stockTruncatedNotice: 'Hinweis: Es gab mehr Artikel, als auf einmal abgerufen werden konnten. Diese Übersicht ist möglicherweise unvollständig.',
+      stockEmpty: 'Keine Artikel für Elmarc oder Elmarc_B2B gefunden.',
+      stockPerWarehouseTitle: 'Bestand pro Lager',
+      stockCombinedTitle: 'Kombinierter Bestand',
+      colSku: 'SKU',
+      colDescription: 'Name',
+      colElmarc: 'Elmarc',
+      colElmarcB2B: 'Elmarc_B2B',
+      colTotal: 'Gesamt'
     }
   };
   const localeMap = { nl: 'nl-NL', en: 'en-GB', de: 'de-DE' };
@@ -1070,13 +1306,19 @@
   /* Paginanavigatie (Instellingen <-> Expert)                          */
   /* ---------------------------------------------------------------- */
   const pages = {
-    expert:   document.getElementById('page-expert'),
-    settings: document.getElementById('page-settings')
+    expert:     document.getElementById('page-expert'),
+    settings:   document.getElementById('page-settings'),
+    masterdata: document.getElementById('page-masterdata')
+  };
+
+  const topbarKeysByPage = {
+    settings:   ['topbarSettingsTitle', 'topbarSettingsSubtitle'],
+    masterdata: ['topbarMasterdataTitle', 'topbarMasterdataSubtitle'],
+    expert:     ['topbarExpertTitle', 'topbarExpertSubtitle']
   };
 
   function renderTopbar(){
-    const titleKey = currentPage === 'settings' ? 'topbarSettingsTitle' : 'topbarExpertTitle';
-    const subtitleKey = currentPage === 'settings' ? 'topbarSettingsSubtitle' : 'topbarExpertSubtitle';
+    const [titleKey, subtitleKey] = topbarKeysByPage[currentPage] || topbarKeysByPage.expert;
     document.getElementById('pageTitle').textContent = t(titleKey);
     document.getElementById('pageSubtitle').textContent = t(subtitleKey);
   }
@@ -1092,6 +1334,10 @@
       });
 
       renderTopbar();
+
+      if(currentPage === 'masterdata' && stockState === 'idle'){
+        loadStock();
+      }
     });
   });
 
@@ -1269,6 +1515,159 @@
   loadMontaStatus();
 
   /* ---------------------------------------------------------------- */
+  /* Masterdata: voorraad per magazijn + gecombineerd, live uit Monta   */
+  /* ---------------------------------------------------------------- */
+  const MONTA_STOCK_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/monta-stock`;
+
+  const stockRefreshBtn = document.getElementById('stockRefreshBtn');
+  const stockSearchInput = document.getElementById('stockSearchInput');
+  const stockMetaLog = document.getElementById('stockMetaLog');
+  const stockMetaLogText = document.getElementById('stockMetaLogText');
+  const stockErrorBanner = document.getElementById('stockErrorBanner');
+  const stockTruncatedBanner = document.getElementById('stockTruncatedBanner');
+  const stockPerWarehouseBody = document.getElementById('stockPerWarehouseBody');
+  const stockPerWarehouseEmpty = document.getElementById('stockPerWarehouseEmpty');
+  const stockCombinedBody = document.getElementById('stockCombinedBody');
+  const stockCombinedEmpty = document.getElementById('stockCombinedEmpty');
+
+  let stockState = 'idle'; // idle | loading | done | error
+  let stockRows = [];
+  let stockFetchedAt = null;
+  let stockTruncated = false;
+  let stockErrorMessageKey = null;
+  let stockErrorMessageRaw = null;
+  let stockSearchTerm = '';
+
+  function formatStock(value){
+    return (value === null || value === undefined) ? '—' : String(value);
+  }
+
+  function filteredStockRows(){
+    const term = stockSearchTerm.trim().toLowerCase();
+    if(!term) return stockRows;
+    return stockRows.filter(r =>
+      r.sku.toLowerCase().includes(term) ||
+      (r.description || '').toLowerCase().includes(term)
+    );
+  }
+
+  function renderStockMeta(){
+    stockMetaLog.classList.toggle('is-active', stockState === 'loading');
+    if(stockState === 'loading'){
+      stockMetaLogText.textContent = t('stockLoading');
+    } else if(stockState === 'done' && stockFetchedAt){
+      stockMetaLogText.textContent = t('stockLastUpdated').replace('{time}', stockFetchedAt);
+    } else if(stockState === 'error'){
+      stockMetaLogText.textContent = t('stockMetaError');
+    } else {
+      stockMetaLogText.textContent = t('stockMetaIdle');
+    }
+  }
+
+  function renderStockError(){
+    if(stockState === 'error'){
+      stockErrorBanner.style.display = '';
+      stockErrorBanner.textContent = stockErrorMessageKey ? t(stockErrorMessageKey) : (stockErrorMessageRaw || t('stockGenericError'));
+    } else {
+      stockErrorBanner.style.display = 'none';
+    }
+    stockTruncatedBanner.style.display = stockTruncated ? '' : 'none';
+    if(stockTruncated){
+      stockTruncatedBanner.textContent = t('stockTruncatedNotice');
+    }
+  }
+
+  function renderStockTables(){
+    const rows = filteredStockRows();
+
+    stockPerWarehouseBody.innerHTML = '';
+    stockCombinedBody.innerHTML = '';
+
+    rows.forEach(r => {
+      const tr1 = document.createElement('tr');
+      const skuTd1 = document.createElement('td');
+      skuTd1.textContent = r.sku;
+      const descTd1 = document.createElement('td');
+      descTd1.textContent = r.description;
+      const elmarcTd = document.createElement('td');
+      elmarcTd.textContent = formatStock(r.elmarc);
+      elmarcTd.className = 'md-num';
+      const elmarcB2BTd = document.createElement('td');
+      elmarcB2BTd.textContent = formatStock(r.elmarcB2B);
+      elmarcB2BTd.className = 'md-num';
+      tr1.append(skuTd1, descTd1, elmarcTd, elmarcB2BTd);
+      stockPerWarehouseBody.appendChild(tr1);
+
+      const tr2 = document.createElement('tr');
+      const skuTd2 = document.createElement('td');
+      skuTd2.textContent = r.sku;
+      const descTd2 = document.createElement('td');
+      descTd2.textContent = r.description;
+      const totalTd = document.createElement('td');
+      totalTd.textContent = formatStock(r.total);
+      totalTd.className = 'md-num';
+      tr2.append(skuTd2, descTd2, totalTd);
+      stockCombinedBody.appendChild(tr2);
+    });
+
+    const isEmpty = rows.length === 0;
+    stockPerWarehouseEmpty.style.display = isEmpty ? '' : 'none';
+    stockCombinedEmpty.style.display = isEmpty ? '' : 'none';
+    stockPerWarehouseEmpty.textContent = t('stockEmpty');
+    stockCombinedEmpty.textContent = t('stockEmpty');
+  }
+
+  function renderStockUI(){
+    renderStockMeta();
+    renderStockError();
+    renderStockTables();
+  }
+
+  async function loadStock(){
+    stockState = 'loading';
+    stockErrorMessageKey = null;
+    stockErrorMessageRaw = null;
+    renderStockUI();
+
+    try {
+      const response = await fetch(MONTA_STOCK_FUNCTION_URL, { headers: supabaseHeaders });
+      const data = await response.json().catch(() => ({}));
+
+      if(!response.ok){
+        stockState = 'error';
+        if(data && data.error === 'not_configured'){
+          stockErrorMessageKey = 'stockNotConfigured';
+        } else if(data && data.error === 'unauthorized'){
+          stockErrorMessageKey = 'stockConnectionError';
+        } else {
+          stockErrorMessageRaw = (data && data.message) || t('stockGenericError');
+        }
+        renderStockUI();
+        return;
+      }
+
+      stockRows = Array.isArray(data.rows) ? data.rows : [];
+      stockTruncated = !!data.truncated;
+      stockFetchedAt = formatNow();
+      stockState = 'done';
+      renderStockUI();
+    } catch (err) {
+      stockState = 'error';
+      stockErrorMessageRaw = t('stockGenericError');
+      renderStockUI();
+    }
+  }
+
+  stockRefreshBtn.addEventListener('click', () => {
+    loadStock();
+  });
+
+  stockSearchInput.addEventListener('input', () => {
+    stockSearchTerm = stockSearchInput.value;
+    renderStockTables();
+  });
+
+  /* ---------------------------------------------------------------- */
   /* Taalkeuze                                                          */
   /* ---------------------------------------------------------------- */
   function applyLanguage(lang){
@@ -1300,6 +1699,21 @@
     document.getElementById('footerBrandText').innerHTML = 'Elmarc &middot; Feed manager';
     document.getElementById('footerDisclaimerText').textContent = t('disclaimer');
 
+    document.getElementById('navMasterdataLabel').textContent = t('navMasterdata');
+    document.getElementById('masterdataTitle').textContent = t('masterdataTitle');
+    document.getElementById('masterdataDesc').textContent = t('masterdataDesc');
+    document.getElementById('stockRefreshBtnLabel').textContent = t('stockRefreshBtn');
+    document.getElementById('stockSearchInput').placeholder = t('stockSearchPlaceholder');
+    document.getElementById('stockPerWarehouseTitle').textContent = t('stockPerWarehouseTitle');
+    document.getElementById('stockCombinedTitle').textContent = t('stockCombinedTitle');
+    document.getElementById('colSkuLabel1').textContent = t('colSku');
+    document.getElementById('colDescriptionLabel1').textContent = t('colDescription');
+    document.getElementById('colElmarcLabel').textContent = t('colElmarc');
+    document.getElementById('colElmarcB2BLabel').textContent = t('colElmarcB2B');
+    document.getElementById('colSkuLabel2').textContent = t('colSku');
+    document.getElementById('colDescriptionLabel2').textContent = t('colDescription');
+    document.getElementById('colTotalLabel').textContent = t('colTotal');
+
     document.querySelectorAll('.lang-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
     });
@@ -1310,6 +1724,7 @@
     renderConnectionStatus();
     renderPasswordToggles();
     renderTopbar();
+    renderStockUI();
   }
 
   document.querySelectorAll('.lang-btn').forEach(btn => {
