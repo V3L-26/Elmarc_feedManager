@@ -251,6 +251,10 @@
     color: var(--text-muted);
     white-space:nowrap;
   }
+  .footer-version{
+    color: #9aa3b0;
+    font-weight: 500;
+  }
   .sidebar-footer-disclaimer{
     margin-top: 6px;
     font-size: 11px;
@@ -772,7 +776,7 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="sidebar-footer-brand" id="footerBrandText">Elmarc &middot; Feed manager</div>
+      <div class="sidebar-footer-brand" id="footerBrandText">Elmarc &middot; Feed manager <span class="footer-version">v1.0</span></div>
       <div class="sidebar-footer-disclaimer" id="footerDisclaimerText">
         Let op: wijzigingen hier hebben direct effect op de live voorraadfeed. Gebruik met zorg.
       </div>
@@ -1057,6 +1061,11 @@
 </div>
 
 <script>
+  /* ---------------------------------------------------------------- */
+  /* App-versie: begint bij 1.0, telt op t/m 1.99, dan pas naar 2.0     */
+  /* ---------------------------------------------------------------- */
+  const APP_VERSION = '1.0';
+
   /* ---------------------------------------------------------------- */
   /* i18n                                                              */
   /* ---------------------------------------------------------------- */
@@ -1990,7 +1999,7 @@
     document.getElementById('saveSettingsBtnLabel').textContent = t('saveSettingsBtn');
     document.getElementById('testConnectionBtnLabel').textContent = t('testConnectionBtn');
 
-    document.getElementById('footerBrandText').innerHTML = 'Elmarc &middot; Feed manager';
+    document.getElementById('footerBrandText').innerHTML = 'Elmarc &middot; Feed manager <span class="footer-version">v' + APP_VERSION + '</span>';
     document.getElementById('footerDisclaimerText').textContent = t('disclaimer');
 
     document.getElementById('navMasterdataLabel').textContent = t('navMasterdata');
