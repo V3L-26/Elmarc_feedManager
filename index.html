@@ -665,6 +665,7 @@
   .md-table th{
     position: sticky;
     top: 0;
+    z-index: 2;
     background: var(--accent-tint);
     color: var(--accent-strong);
     text-align: left;
@@ -672,6 +673,10 @@
     padding: 9px 12px;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
+  }
+  .md-table td{
+    position: relative;
+    z-index: 1;
   }
   .md-table td{
     padding: 8px 12px;
@@ -1370,7 +1375,7 @@
     settingsView.style.display = 'none';
     articlesView.style.display = 'block';
     if(articlesState === 'idle'){
-      loadArticles(false);
+      loadArticles();
     }
   });
   document.getElementById('backToSettingsBtn').addEventListener('click', () => {
@@ -1758,6 +1763,15 @@
     renderStockTables();
   });
 
+  // Automatisch verversen vanuit de Supabase-cache (snelle GET, geen live
+  // Monta-call) zodat de pagina de resultaten van de achtergrond-cronjob
+  // (elke 10 minuten) oppikt, ook zonder handmatige paginarefresh.
+  setInterval(() => {
+    if(stockState !== 'loading' && stockState !== 'syncing'){
+      loadStock(false);
+    }
+  }, 10 * 60 * 1000);
+
   /* ---------------------------------------------------------------- */
   /* Expert: overzicht artikelen — lijst uit Monta, met aan/uit-schuifje */
   /* voor de feed, en zoekfunctie                                       */
@@ -1864,35 +1878,17 @@
     renderArticlesTable();
   }
 
-  async function loadArticles(sync){
-    articlesState = sync ? 'syncing' : 'loading';
+  async function loadArticles(){
+    // Deze pagina leest UITSLUITEND uit de Supabase-cache (monta-articles doet
+    // zelf enkel een DB-read). Er wordt hier nooit live naar de Monta API
+    // gesynchroniseerd — dat gebeurt alleen via de achtergrond-cronjob of de
+    // Verversen-knop op de Monta Stock-pagina.
+    articlesState = 'loading';
     articlesErrorMessageKey = null;
     articlesErrorMessageRaw = null;
     renderArticlesUI();
 
     try {
-      if(sync){
-        // De artikelenlijst deelt dezelfde Monta-cache als Monta Stock: eerst
-        // die verversen (live ophalen bij Monta, ~20-30s), dan hieronder de
-        // (snelle) samengevoegde lijst met aan/uit-standen opnieuw ophalen.
-        const syncResponse = await fetch(MONTA_STOCK_FUNCTION_URL, { method: 'POST', headers: supabaseHeaders });
-        const syncData = await syncResponse.json().catch(() => ({}));
-        if(!syncResponse.ok){
-          articlesState = 'error';
-          if(syncData && syncData.error === 'not_configured'){
-            articlesErrorMessageKey = 'stockNotConfigured';
-          } else if(syncData && syncData.error === 'unauthorized'){
-            articlesErrorMessageKey = 'stockConnectionError';
-          } else {
-            articlesErrorMessageRaw = (syncData && syncData.message) || t('stockGenericError');
-          }
-          renderArticlesUI();
-          return;
-        }
-        // De Monta Stock-cache staat nu bij, zorg dat die pagina het ook oppikt.
-        stockLastSyncedAt = syncData.lastSyncedAt || stockLastSyncedAt;
-      }
-
       const response = await fetch(MONTA_ARTICLES_FUNCTION_URL, { headers: supabaseHeaders });
       const data = await response.json().catch(() => ({}));
 
@@ -1957,8 +1953,16 @@
   });
 
   articlesRefreshBtn.addEventListener('click', () => {
-    loadArticles(true);
+    loadArticles();
   });
+
+  // Automatisch verversen vanuit de Supabase-cache (geen Monta-call), zodat
+  // deze pagina de resultaten van de achtergrond-cronjob oppikt.
+  setInterval(() => {
+    if(articlesState !== 'loading'){
+      loadArticles();
+    }
+  }, 10 * 60 * 1000);
 
   articlesSearchInput.addEventListener('input', () => {
     articlesSearchTerm = articlesSearchInput.value;
