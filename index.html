@@ -1117,6 +1117,8 @@
       stockSearchPlaceholder: 'Zoek op SKU of naam…',
       stockMetaIdle: 'Nog niet geladen.',
       stockLoading: 'Voorraad wordt opgehaald…',
+      stockSyncing: 'Live ophalen bij Monta… dit duurt ongeveer 20-30 seconden.',
+      stockNeverSynced: 'Nog nooit gesynchroniseerd met Monta. Klik op Verversen.',
       stockLastUpdated: 'Laatst bijgewerkt: {time}',
       stockMetaError: 'Ophalen mislukt.',
       stockNotConfigured: 'Stel eerst de Monta-koppeling in bij Instellingen.',
@@ -1188,6 +1190,8 @@
       stockSearchPlaceholder: 'Search by SKU or name…',
       stockMetaIdle: 'Not loaded yet.',
       stockLoading: 'Fetching stock…',
+      stockSyncing: 'Fetching live from Monta… this takes about 20-30 seconds.',
+      stockNeverSynced: 'Never synced with Monta yet. Click Refresh.',
       stockLastUpdated: 'Last updated: {time}',
       stockMetaError: 'Fetching failed.',
       stockNotConfigured: 'Set up the Monta connection in Settings first.',
@@ -1259,6 +1263,8 @@
       stockSearchPlaceholder: 'Suche nach SKU oder Name…',
       stockMetaIdle: 'Noch nicht geladen.',
       stockLoading: 'Bestand wird abgerufen…',
+      stockSyncing: 'Live Abruf bei Monta… dies dauert etwa 20-30 Sekunden.',
+      stockNeverSynced: 'Noch nie mit Monta synchronisiert. Auf Aktualisieren klicken.',
       stockLastUpdated: 'Zuletzt aktualisiert: {time}',
       stockMetaError: 'Abrufen fehlgeschlagen.',
       stockNotConfigured: 'Richten Sie zuerst die Monta-Anbindung unter Einstellungen ein.',
@@ -1355,7 +1361,7 @@
     settingsView.style.display = 'none';
     articlesView.style.display = 'block';
     if(articlesState === 'idle'){
-      loadArticles();
+      loadArticles(false);
     }
   });
   document.getElementById('backToSettingsBtn').addEventListener('click', () => {
@@ -1397,7 +1403,7 @@
       renderTopbar();
 
       if(currentPage === 'masterdata' && stockState === 'idle'){
-        loadStock();
+        loadStock(false);
       }
     });
   });
@@ -1591,9 +1597,9 @@
   const stockCombinedBody = document.getElementById('stockCombinedBody');
   const stockCombinedEmpty = document.getElementById('stockCombinedEmpty');
 
-  let stockState = 'idle'; // idle | loading | done | error
+  let stockState = 'idle'; // idle | loading | syncing | done | error
   let stockRows = [];
-  let stockFetchedAt = null;
+  let stockLastSyncedAt = null; // ISO string uit Supabase, of null als nog nooit gesynchroniseerd
   let stockTruncated = false;
   let stockErrorMessageKey = null;
   let stockErrorMessageRaw = null;
@@ -1601,6 +1607,15 @@
 
   function formatStock(value){
     return (value === null || value === undefined) ? '—' : String(value);
+  }
+
+  function formatIso(iso){
+    if(!iso) return null;
+    try {
+      return new Date(iso).toLocaleString(localeMap[currentLang] || 'nl-NL');
+    } catch(e){
+      return null;
+    }
   }
 
   function filteredStockRows(){
@@ -1613,15 +1628,18 @@
   }
 
   function renderStockMeta(){
-    stockMetaLog.classList.toggle('is-active', stockState === 'loading');
-    if(stockState === 'loading'){
+    stockMetaLog.classList.toggle('is-active', stockState === 'loading' || stockState === 'syncing');
+    const syncedText = formatIso(stockLastSyncedAt);
+    if(stockState === 'syncing'){
+      stockMetaLogText.textContent = t('stockSyncing');
+    } else if(stockState === 'loading'){
       stockMetaLogText.textContent = t('stockLoading');
-    } else if(stockState === 'done' && stockFetchedAt){
-      stockMetaLogText.textContent = t('stockLastUpdated').replace('{time}', stockFetchedAt);
     } else if(stockState === 'error'){
       stockMetaLogText.textContent = t('stockMetaError');
+    } else if(syncedText){
+      stockMetaLogText.textContent = t('stockLastUpdated').replace('{time}', syncedText);
     } else {
-      stockMetaLogText.textContent = t('stockMetaIdle');
+      stockMetaLogText.textContent = t('stockNeverSynced');
     }
   }
 
@@ -1684,14 +1702,17 @@
     renderStockTables();
   }
 
-  async function loadStock(){
-    stockState = 'loading';
+  async function loadStock(sync){
+    stockState = sync ? 'syncing' : 'loading';
     stockErrorMessageKey = null;
     stockErrorMessageRaw = null;
     renderStockUI();
 
     try {
-      const response = await fetch(MONTA_STOCK_FUNCTION_URL, { headers: supabaseHeaders });
+      const response = await fetch(MONTA_STOCK_FUNCTION_URL, {
+        method: sync ? 'POST' : 'GET',
+        headers: supabaseHeaders
+      });
       const data = await response.json().catch(() => ({}));
 
       if(!response.ok){
@@ -1709,7 +1730,7 @@
 
       stockRows = Array.isArray(data.rows) ? data.rows : [];
       stockTruncated = !!data.truncated;
-      stockFetchedAt = formatNow();
+      stockLastSyncedAt = data.lastSyncedAt || stockLastSyncedAt;
       stockState = 'done';
       renderStockUI();
     } catch (err) {
@@ -1720,7 +1741,7 @@
   }
 
   stockRefreshBtn.addEventListener('click', () => {
-    loadStock();
+    loadStock(true);
   });
 
   stockSearchInput.addEventListener('input', () => {
@@ -1743,9 +1764,9 @@
   const articlesBody = document.getElementById('articlesBody');
   const articlesEmpty = document.getElementById('articlesEmpty');
 
-  let articlesState = 'idle'; // idle | loading | done | error
+  let articlesState = 'idle'; // idle | loading | syncing | done | error
   let articlesRows = [];
-  let articlesFetchedAt = null;
+  let articlesLastSyncedAt = null; // ISO string uit Supabase, of null als nog nooit gesynchroniseerd
   let articlesTruncated = false;
   let articlesErrorMessageKey = null;
   let articlesErrorMessageRaw = null;
@@ -1762,15 +1783,18 @@
   }
 
   function renderArticlesMeta(){
-    articlesMetaLog.classList.toggle('is-active', articlesState === 'loading');
-    if(articlesState === 'loading'){
+    articlesMetaLog.classList.toggle('is-active', articlesState === 'loading' || articlesState === 'syncing');
+    const syncedText = formatIso(articlesLastSyncedAt);
+    if(articlesState === 'syncing'){
+      articlesMetaLogText.textContent = t('stockSyncing');
+    } else if(articlesState === 'loading'){
       articlesMetaLogText.textContent = t('stockLoading');
-    } else if(articlesState === 'done' && articlesFetchedAt){
-      articlesMetaLogText.textContent = t('stockLastUpdated').replace('{time}', articlesFetchedAt);
     } else if(articlesState === 'error'){
       articlesMetaLogText.textContent = t('stockMetaError');
+    } else if(syncedText){
+      articlesMetaLogText.textContent = t('stockLastUpdated').replace('{time}', syncedText);
     } else {
-      articlesMetaLogText.textContent = t('stockMetaIdle');
+      articlesMetaLogText.textContent = t('stockNeverSynced');
     }
   }
 
@@ -1831,13 +1855,35 @@
     renderArticlesTable();
   }
 
-  async function loadArticles(){
-    articlesState = 'loading';
+  async function loadArticles(sync){
+    articlesState = sync ? 'syncing' : 'loading';
     articlesErrorMessageKey = null;
     articlesErrorMessageRaw = null;
     renderArticlesUI();
 
     try {
+      if(sync){
+        // De artikelenlijst deelt dezelfde Monta-cache als Monta Stock: eerst
+        // die verversen (live ophalen bij Monta, ~20-30s), dan hieronder de
+        // (snelle) samengevoegde lijst met aan/uit-standen opnieuw ophalen.
+        const syncResponse = await fetch(MONTA_STOCK_FUNCTION_URL, { method: 'POST', headers: supabaseHeaders });
+        const syncData = await syncResponse.json().catch(() => ({}));
+        if(!syncResponse.ok){
+          articlesState = 'error';
+          if(syncData && syncData.error === 'not_configured'){
+            articlesErrorMessageKey = 'stockNotConfigured';
+          } else if(syncData && syncData.error === 'unauthorized'){
+            articlesErrorMessageKey = 'stockConnectionError';
+          } else {
+            articlesErrorMessageRaw = (syncData && syncData.message) || t('stockGenericError');
+          }
+          renderArticlesUI();
+          return;
+        }
+        // De Monta Stock-cache staat nu bij, zorg dat die pagina het ook oppikt.
+        stockLastSyncedAt = syncData.lastSyncedAt || stockLastSyncedAt;
+      }
+
       const response = await fetch(MONTA_ARTICLES_FUNCTION_URL, { headers: supabaseHeaders });
       const data = await response.json().catch(() => ({}));
 
@@ -1856,7 +1902,7 @@
 
       articlesRows = Array.isArray(data.rows) ? data.rows : [];
       articlesTruncated = !!data.truncated;
-      articlesFetchedAt = formatNow();
+      articlesLastSyncedAt = data.lastSyncedAt || articlesLastSyncedAt;
       articlesState = 'done';
       renderArticlesUI();
     } catch (err) {
@@ -1902,7 +1948,7 @@
   });
 
   articlesRefreshBtn.addEventListener('click', () => {
-    loadArticles();
+    loadArticles(true);
   });
 
   articlesSearchInput.addEventListener('input', () => {
