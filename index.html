@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feed manager</title>
+<style>
+  :root{
+    --sidebar-w: 268px;
+    --sidebar-w-collapsed: 72px;
+    --bg: #f4f6f8;
+    --sidebar-bg: #ffffff;
+    --sidebar-hover: #f0f3f6;
+    --sidebar-border: #e3e7ed;
+    --sidebar-text: #5b6472;
+    --sidebar-text-active: #14213d;
+    --accent: #8fb4c6;
+    --accent-strong: #5c8aa3;
+    --accent-tint: #eaf1f4;
+    --border: #e3e7ed;
+    --text: #1f2733;
+    --text-muted: #6b7484;
+    --card-bg: #ffffff;
+    --radius: 10px;
+    --transition: 0.22s ease;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .app{
+    display:flex;
+    height:100vh;
+    overflow:hidden;
+    position:relative;
+  }
+
+  /* Sidebar */
+  .sidebar{
+    width: var(--sidebar-w);
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    display:flex;
+    flex-direction:column;
+    flex-shrink:0;
+    transition: width var(--transition);
+    overflow:hidden;
+  }
+  .app.collapsed .sidebar{
+    width: var(--sidebar-w-collapsed);
+  }
+  .sidebar-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 18px 20px 18px 16px;
+    height: 64px;
+    border-bottom: 1px solid var(--sidebar-border);
+    overflow:hidden;
+  }
+  .app.collapsed .sidebar-header{
+    padding: 18px 0;
+    justify-content:center;
+  }
+  .sidebar-logo{
+    height: 26px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+  }
+  .sidebar-logo img{
+    height: 18px;
+    width:auto;
+    display:block;
+  }
+  .app.collapsed .sidebar-logo{
+    display:none;
+  }
+  .sidebar-logo-icon{
+    display:none;
+    width: 32px;
+    height: 32px;
+    flex-shrink:0;
+    border-radius: 8px;
+    background: var(--accent-tint);
+    color: var(--accent-strong);
+    font-weight: 700;
+    font-size: 15px;
+    align-items:center;
+    justify-content:center;
+  }
+  .app.collapsed .sidebar-logo-icon{
+    display:flex;
+  }
+  .sidebar-title{
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--sidebar-text-active);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    min-width:0;
+    opacity:1;
+    transition: opacity 0.15s ease;
+  }
+  .app.collapsed .sidebar-title{
+    opacity:0;
+    width:0;
+    pointer-events:none;
+  }
+
+  .sidebar-toggle{
+    position:absolute;
+    top: 20px;
+    left: calc(var(--sidebar-w) - 14px);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    box-shadow: 0 1px 4px rgba(20,33,61,0.12);
+    transition: left var(--transition);
+    z-index: 20;
+  }
+  .app.collapsed .sidebar-toggle{
+    left: calc(var(--sidebar-w-collapsed) - 14px);
+  }
+  .sidebar-toggle svg{
+    width:14px; height:14px;
+    transition: transform var(--transition);
+  }
+  .app.collapsed .sidebar-toggle svg{
+    transform: rotate(180deg);
+  }
+
+  .sidebar-nav{
+    flex:1;
+    padding: 12px 10px;
+    overflow-y:auto;
+  }
+  .nav-section-label{
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9aa3b0;
+    padding: 10px 12px 6px;
+    white-space:nowrap;
+    transition: opacity 0.15s ease;
+  }
+  .app.collapsed .nav-section-label{
+    opacity:0;
+  }
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--sidebar-text);
+    text-decoration:none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor:pointer;
+    white-space:nowrap;
+    margin-bottom: 2px;
+    border-left: 3px solid transparent;
+    transition: background var(--transition), color var(--transition);
+  }
+  .nav-item:hover{
+    background: var(--sidebar-hover);
+    color: var(--sidebar-text-active);
+  }
+  .nav-item.active{
+    background: var(--accent-tint);
+    color: var(--sidebar-text-active);
+    border-left: 3px solid var(--accent-strong);
+    font-weight: 600;
+  }
+  .nav-item .nav-icon{
+    width: 20px;
+    height: 20px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color: var(--accent-strong);
+  }
+  .nav-item .nav-icon svg{
+    width: 100%;
+    height: 100%;
+  }
+  .nav-item .nav-label{
+    opacity:1;
+    transition: opacity 0.15s ease;
+  }
+  .app.collapsed .nav-item .nav-label{
+    opacity:0;
+    width:0;
+    overflow:hidden;
+  }
+  .nav-status{
+    margin-left: auto;
+    display:flex;
+    align-items:center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-strong);
+    white-space:nowrap;
+    padding-left: 8px;
+    transition: opacity 0.15s ease;
+  }
+  .nav-status.is-inactive{
+    color: #9aa3b0;
+  }
+  .nav-status-dot{
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-strong);
+    flex-shrink:0;
+  }
+  .nav-status.is-inactive .nav-status-dot{
+    background: #b6bec9;
+  }
+  .app.collapsed .nav-status{
+    opacity:0;
+    width:0;
+    overflow:hidden;
+    padding-left:0;
+  }
+  .app.collapsed .nav-item{
+    justify-content:center;
+    border-left: none;
+  }
+
+  .sidebar-footer{
+    padding: 14px 16px;
+    border-top: 1px solid var(--sidebar-border);
+    transition: opacity 0.15s ease;
+  }
+  .sidebar-footer-brand{
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space:nowrap;
+  }
+  .sidebar-footer-disclaimer{
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #9aa3b0;
+    white-space: normal;
+  }
+  .app.collapsed .sidebar-footer{
+    opacity:0;
+  }
+  .lang-switcher{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .lang-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width: 30px;
+    height: 24px;
+    padding: 0;
+    border-radius: 5px;
+    border: 1.5px solid transparent;
+    background: transparent;
+    cursor:pointer;
+    opacity: 0.55;
+    transition: opacity var(--transition), border-color var(--transition), background var(--transition);
+  }
+  .lang-btn:hover{
+    opacity: 0.85;
+  }
+  .lang-btn.active{
+    opacity: 1;
+    border-color: var(--accent-strong);
+    background: var(--accent-tint);
+  }
+  .flag-icon{
+    display:block;
+    width: 20px;
+    height: 14px;
+    border-radius: 2px;
+    overflow:hidden;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+  }
+  .flag-icon svg{
+    display:block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Main content */
+  .main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    position:relative;
+  }
+  .topbar{
+    height: 64px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 0 28px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar h1{
+    font-size: 18px;
+    font-weight: 600;
+    margin:0;
+  }
+  .topbar .subtitle{
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top:2px;
+  }
+  .content{
+    flex:1;
+    overflow-y:auto;
+    padding: 28px;
+  }
+  .card{
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .placeholder{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .placeholder h2{
+    margin:0;
+    font-size: 16px;
+  }
+  .placeholder p{
+    margin:0;
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 520px;
+    line-height:1.5;
+  }
+  .badge{
+    display:inline-block;
+    font-size: 11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    background: var(--accent-tint);
+    color: var(--accent-strong);
+    padding: 3px 9px;
+    border-radius: 999px;
+    margin-bottom: 4px;
+  }
+
+  /* Expert settings panel */
+  .settings-card{
+    max-width: 640px;
+  }
+  .settings-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 24px;
+  }
+  .settings-label{
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .settings-desc{
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 420px;
+  }
+  /* Toggle switch */
+  .switch{
+    position: relative;
+    display:inline-block;
+    width: 44px;
+    height: 26px;
+    flex-shrink:0;
+  }
+  .switch input{
+    opacity:0;
+    width:0;
+    height:0;
+  }
+  .switch-slider{
+    position:absolute;
+    cursor:pointer;
+    inset:0;
+    background: #cfd6de;
+    border-radius: 999px;
+    transition: background var(--transition);
+  }
+  .switch-slider::before{
+    content:"";
+    position:absolute;
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius:50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: transform var(--transition);
+  }
+  .switch input:checked + .switch-slider{
+    background: var(--accent-strong);
+  }
+  .switch input:checked + .switch-slider::before{
+    transform: translateX(18px);
+  }
+
+  .divider{
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  .actions-row{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    flex-wrap:wrap;
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor:pointer;
+    border: 1px solid transparent;
+    transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+  }
+  .btn .btn-icon{
+    width: 16px;
+    height: 16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .btn .btn-icon svg{
+    width:100%;
+    height:100%;
+  }
+  .btn-primary{
+    background: var(--accent-strong);
+    color: #fff;
+  }
+  .btn-primary:hover{
+    background: #4d778f;
+  }
+  .btn:disabled{
+    opacity: 0.7;
+    cursor: default;
+  }
+  .btn.is-running .btn-icon svg{
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin{
+    from{ transform: rotate(0deg); }
+    to{ transform: rotate(360deg); }
+  }
+  .btn-secondary{
+    background: #fff;
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .btn-secondary:hover{
+    background: var(--sidebar-hover);
+  }
+  .btn-link{
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 18px;
+    color: var(--accent-strong);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .btn-link:hover{
+    text-decoration: underline;
+  }
+
+  .run-log{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .run-log-dot{
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #b6bec9;
+    flex-shrink:0;
+  }
+  .run-log.is-active .run-log-dot{
+    background: var(--accent-strong);
+  }
+
+  /* Monta WMS settings form */
+  .form-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 20px;
+  }
+  .form-field{
+    display:flex;
+    flex-direction:column;
+    gap: 6px;
+  }
+  .form-field-full{
+    grid-column: 1 / -1;
+  }
+  .form-field-label{
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .form-field input{
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--text);
+    width: 100%;
+  }
+  .form-field input:focus{
+    outline: none;
+    border-color: var(--accent-strong);
+    box-shadow: 0 0 0 3px var(--accent-tint);
+  }
+  .form-field input[readonly]{
+    background: var(--bg);
+    color: var(--text-muted);
+    cursor: default;
+  }
+  .form-field input[readonly]:focus{
+    border-color: var(--border);
+    box-shadow: none;
+  }
+  .form-field-hint{
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .connection-status{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .connection-status.is-ok .run-log-dot{
+    background: #2f9e58;
+  }
+  .connection-status.is-error .run-log-dot{
+    background: #d1453b;
+  }
+  .password-wrap{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .password-wrap input{
+    flex:1;
+    min-width:0;
+  }
+  .password-toggle{
+    flex-shrink:0;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-strong);
+    background: none;
+    border: none;
+    cursor:pointer;
+    padding: 4px 2px;
+    white-space:nowrap;
+  }
+  .password-toggle:hover{
+    text-decoration: underline;
+  }
+  @media (max-width: 620px){
+    .form-grid{
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <img src="data:image/png;base64,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" alt="Elmarc">
+      </div>
+      <div class="sidebar-logo-icon">E</div>
+      <div class="sidebar-title">Feed manager</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label" id="navGeneralLabel">Algemeen</div>
+      <div class="nav-item" data-page="settings">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.3 3.2a1.9 1.9 0 0 1 3.4 0l.4.9a1.9 1.9 0 0 0 2.2 1l.9-.3a1.9 1.9 0 0 1 2.4 2.4l-.3.9a1.9 1.9 0 0 0 1 2.2l.9.4a1.9 1.9 0 0 1 0 3.4l-.9.4a1.9 1.9 0 0 0-1 2.2l.3.9a1.9 1.9 0 0 1-2.4 2.4l-.9-.3a1.9 1.9 0 0 0-2.2 1l-.4.9a1.9 1.9 0 0 1-3.4 0l-.4-.9a1.9 1.9 0 0 0-2.2-1l-.9.3a1.9 1.9 0 0 1-2.4-2.4l.3-.9a1.9 1.9 0 0 0-1-2.2l-.9-.4a1.9 1.9 0 0 1 0-3.4l.9-.4a1.9 1.9 0 0 0 1-2.2l-.3-.9a1.9 1.9 0 0 1 2.4-2.4l.9.3a1.9 1.9 0 0 0 2.2-1l.4-.9z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </span>
+        <span class="nav-label" id="navSettingsLabel">Instellingen</span>
+      </div>
+
+      <div class="nav-section-label" id="navFeedsLabel">Feeds</div>
+      <div class="nav-item active" data-page="expert">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7l9-4 9 4-9 4-9-4z"/>
+            <path d="M3 12l9 4 9-4"/>
+            <path d="M3 17l9 4 9-4"/>
+          </svg>
+        </span>
+        <span class="nav-label">Expert</span>
+        <span class="nav-status" id="expertNavStatus">
+          <span class="nav-status-dot"></span>
+          <span class="nav-status-text">Actief</span>
+        </span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-brand" id="footerBrandText">Elmarc &middot; Feed manager</div>
+      <div class="sidebar-footer-disclaimer" id="footerDisclaimerText">
+        Let op: wijzigingen hier hebben direct effect op de live voorraadfeed. Gebruik met zorg.
+      </div>
+      <div class="lang-switcher" id="langSwitcher">
+        <button type="button" class="lang-btn active" data-lang="nl" title="Nederlands" aria-label="Nederlands">
+          <span class="flag-icon">
+            <svg viewBox="0 0 20 14" preserveAspectRatio="none">
+              <rect y="0" width="20" height="4.67" fill="#AE1C28"/>
+              <rect y="4.67" width="20" height="4.67" fill="#FFFFFF"/>
+              <rect y="9.33" width="20" height="4.67" fill="#21468B"/>
+            </svg>
+          </span>
+        </button>
+        <button type="button" class="lang-btn" data-lang="en" title="English" aria-label="English">
+          <span class="flag-icon">
+            <svg viewBox="0 0 20 14" preserveAspectRatio="none">
+              <rect width="20" height="14" fill="#00247d"/>
+              <path d="M0,0 L20,14 M20,0 L0,14" stroke="#fff" stroke-width="3"/>
+              <path d="M0,0 L20,14 M20,0 L0,14" stroke="#cf142b" stroke-width="1.2"/>
+              <path d="M10,0 V14 M0,7 H20" stroke="#fff" stroke-width="4.5"/>
+              <path d="M10,0 V14 M0,7 H20" stroke="#cf142b" stroke-width="2.4"/>
+            </svg>
+          </span>
+        </button>
+        <button type="button" class="lang-btn" data-lang="de" title="Deutsch" aria-label="Deutsch">
+          <span class="flag-icon">
+            <svg viewBox="0 0 20 14" preserveAspectRatio="none">
+              <rect y="0" width="20" height="4.67" fill="#000000"/>
+              <rect y="4.67" width="20" height="4.67" fill="#DD0000"/>
+              <rect y="9.33" width="20" height="4.67" fill="#FFCE00"/>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-toggle" id="sidebarToggle" title="Menu in-/uitklappen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#14213d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 6l-6 6 6 6"/>
+    </svg>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">Expert</h1>
+        <div class="subtitle" id="pageSubtitle">Voorraadfeed naar Expert</div>
+      </div>
+    </div>
+    <div class="content">
+
+     <div id="page-expert">
+
+      <div class="card settings-card" id="expertSettingsView">
+        <div class="settings-row">
+          <div class="settings-copy">
+            <div class="settings-label" id="feedStatusLabel">Feed status</div>
+            <div class="settings-desc" id="feedStatusDesc">
+              Zet de Expert-feed actief of inactief. Handmatig draaien via de knop hieronder
+              werkt altijd, ongeacht deze status.
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="feedActiveToggle" checked>
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="actions-row">
+          <button class="btn btn-primary" id="runFeedBtn">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4v6h6"/>
+                <path d="M20 20v-6h-6"/>
+                <path d="M4.5 15a8 8 0 0 0 14.6 2M19.5 9A8 8 0 0 0 4.9 7"/>
+              </svg>
+            </span>
+            <span class="btn-label" id="runFeedBtnLabel">Feed nu draaien</span>
+          </button>
+
+          <button class="btn btn-secondary" id="viewArticlesBtn">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+            </span>
+            <span class="btn-label" id="viewArticlesBtnLabel">Overzicht artikelen</span>
+          </button>
+        </div>
+
+        <div class="run-log" id="runLog">
+          <span class="run-log-dot"></span>
+          <span id="runLogText">Nog niet handmatig gedraaid.</span>
+        </div>
+      </div>
+
+      <div class="card" id="expertArticlesView" style="display:none;">
+        <div class="placeholder">
+          <span class="badge" id="articlesBadge">Binnenkort</span>
+          <h2 id="articlesTitle">Artikelenoverzicht</h2>
+          <p id="articlesDesc">
+            Hier komt de lijst met SKU's uit Monta WMS te staan, met de mogelijkheid
+            om per artikel aan te vinken of de voorraad naar Expert doorgestuurd moet worden.
+          </p>
+        </div>
+        <button class="btn btn-link" id="backToSettingsBtn">&larr; Terug naar Expert</button>
+      </div>
+
+     </div>
+
+     <div id="page-settings" style="display:none;">
+       <div class="card settings-card">
+         <div class="settings-label" id="montaTitle">Monta WMS koppeling</div>
+         <div class="settings-desc" id="montaDesc">
+           Monta authenticeert met HTTP Basic Authentication: alleen een gebruikersnaam en wachtwoord, aan te maken in het Montaportal. De API-URL ligt vast.
+         </div>
+
+         <div class="divider"></div>
+
+         <div class="connection-status" id="connectionStatus">
+           <span class="run-log-dot"></span>
+           <span id="connectionStatusText">Status wordt geladen…</span>
+         </div>
+
+         <div class="divider"></div>
+
+         <form id="montaSettingsForm">
+           <div class="form-grid">
+             <label class="form-field form-field-full">
+               <span class="form-field-label" id="fieldApiUrlLabel">API URL</span>
+               <input type="url" id="montaApiUrl" value="https://api-v6.monta.nl/" readonly>
+             </label>
+             <label class="form-field">
+               <span class="form-field-label" id="fieldApiUsernameLabel">API Username</span>
+               <input type="text" id="montaApiUsername" autocomplete="off">
+             </label>
+             <label class="form-field">
+               <span class="form-field-label" id="fieldApiPasswordLabel">API Password</span>
+               <div class="password-wrap">
+                 <input type="password" id="montaApiPassword" autocomplete="off">
+                 <button type="button" class="password-toggle" data-target="montaApiPassword">Toon</button>
+               </div>
+               <span class="form-field-hint" id="fieldApiPasswordHint">Laat leeg om het huidige wachtwoord te behouden.</span>
+             </label>
+           </div>
+
+           <div class="divider"></div>
+
+           <div class="actions-row">
+             <button type="submit" class="btn btn-primary">
+               <span class="btn-label" id="saveSettingsBtnLabel">Instellingen opslaan</span>
+             </button>
+             <button type="button" class="btn btn-secondary" id="testConnectionBtn">
+               <span class="btn-icon">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                   <path d="M5 13l4 4L19 7"/>
+                 </svg>
+               </span>
+               <span class="btn-label" id="testConnectionBtnLabel">Verbinding testen</span>
+             </button>
+           </div>
+
+           <div class="run-log" id="settingsSaveLog">
+             <span class="run-log-dot"></span>
+             <span id="settingsSaveLogText">Nog niet opgeslagen.</span>
+           </div>
+         </form>
+       </div>
+     </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ---------------------------------------------------------------- */
+  /* i18n                                                              */
+  /* ---------------------------------------------------------------- */
+  const translations = {
+    nl: {
+      navGeneral: 'Algemeen',
+      navSettings: 'Instellingen',
+      navFeeds: 'Feeds',
+      statusActive: 'Actief',
+      statusInactive: 'Inactief',
+      topbarExpertTitle: 'Expert',
+      topbarExpertSubtitle: 'Voorraadfeed naar Expert',
+      topbarSettingsTitle: 'Instellingen',
+      topbarSettingsSubtitle: 'Algemene koppelingen en instellingen',
+      feedStatusLabel: 'Feed status',
+      feedStatusDesc: 'Zet de Expert-feed actief of inactief. Handmatig draaien via de knop hieronder werkt altijd, ongeacht deze status.',
+      runFeedBtn: 'Feed nu draaien',
+      viewArticlesBtn: 'Overzicht artikelen',
+      runLogIdle: 'Nog niet handmatig gedraaid.',
+      runLogRunning: 'Feed wordt gestart…',
+      runLogDone: 'Laatst handmatig gedraaid: {time}',
+      articlesBadge: 'Binnenkort',
+      articlesTitle: 'Artikelenoverzicht',
+      articlesDesc: 'Hier komt de lijst met SKU\'s uit Monta WMS te staan, met de mogelijkheid om per artikel aan te vinken of de voorraad naar Expert doorgestuurd moet worden.',
+      backToExpert: '← Terug naar Expert',
+      montaTitle: 'Monta WMS koppeling',
+      montaDesc: 'Monta authenticeert met HTTP Basic Authentication: alleen een gebruikersnaam en wachtwoord, aan te maken in het Montaportal. De API-URL ligt vast.',
+      fieldApiUrl: 'API URL',
+      fieldApiUsername: 'API Username',
+      fieldApiPassword: 'API Password',
+      showPassword: 'Toon',
+      hidePassword: 'Verberg',
+      passwordHint: 'Laat leeg om het huidige wachtwoord te behouden.',
+      saveSettingsBtn: 'Instellingen opslaan',
+      testConnectionBtn: 'Verbinding testen',
+      settingsSaveIdle: 'Nog niet opgeslagen.',
+      settingsSaving: 'Bezig met opslaan…',
+      settingsSaveDone: 'Opgeslagen om {time}.',
+      settingsSaveMissing: 'Vul een gebruikersnaam en wachtwoord in.',
+      settingsSaveFailed: 'Opslaan is niet gelukt. Probeer het opnieuw.',
+      notConfigured: 'Nog geen Monta-koppeling ingesteld.',
+      connectedAs: 'Gekoppeld als: {user}',
+      statusLoadError: 'Kon status niet laden.',
+      testingConnection: 'Verbinding wordt getest…',
+      connectionOk: 'Verbinding met Monta WMS geslaagd.',
+      connectionFailed: 'Verbinding met Monta WMS mislukt.',
+      footerBrand: 'Elmarc · Feed manager',
+      disclaimer: 'Let op: wijzigingen hier hebben direct effect op de live voorraadfeed. Gebruik met zorg.'
+    },
+    en: {
+      navGeneral: 'General',
+      navSettings: 'Settings',
+      navFeeds: 'Feeds',
+      statusActive: 'Active',
+      statusInactive: 'Inactive',
+      topbarExpertTitle: 'Expert',
+      topbarExpertSubtitle: 'Inventory feed to Expert',
+      topbarSettingsTitle: 'Settings',
+      topbarSettingsSubtitle: 'General integrations and settings',
+      feedStatusLabel: 'Feed status',
+      feedStatusDesc: 'Turn the Expert feed on or off. Running it manually with the button below always works, regardless of this status.',
+      runFeedBtn: 'Run feed now',
+      viewArticlesBtn: 'Article overview',
+      runLogIdle: 'Not run manually yet.',
+      runLogRunning: 'Feed is starting…',
+      runLogDone: 'Last run manually: {time}',
+      articlesBadge: 'Coming soon',
+      articlesTitle: 'Article overview',
+      articlesDesc: 'This is where the list of SKUs from Monta WMS will appear, letting you tick per article whether its stock should be sent to Expert.',
+      backToExpert: '← Back to Expert',
+      montaTitle: 'Monta WMS connection',
+      montaDesc: 'Monta authenticates with HTTP Basic Authentication: just a username and password, created in the Monta portal. The API URL is fixed.',
+      fieldApiUrl: 'API URL',
+      fieldApiUsername: 'API Username',
+      fieldApiPassword: 'API Password',
+      showPassword: 'Show',
+      hidePassword: 'Hide',
+      passwordHint: 'Leave blank to keep the current password.',
+      saveSettingsBtn: 'Save settings',
+      testConnectionBtn: 'Test connection',
+      settingsSaveIdle: 'Not saved yet.',
+      settingsSaving: 'Saving…',
+      settingsSaveDone: 'Saved at {time}.',
+      settingsSaveMissing: 'Enter a username and password.',
+      settingsSaveFailed: 'Saving failed. Please try again.',
+      notConfigured: 'No Monta connection configured yet.',
+      connectedAs: 'Connected as: {user}',
+      statusLoadError: 'Could not load status.',
+      testingConnection: 'Testing connection…',
+      connectionOk: 'Connection to Monta WMS succeeded.',
+      connectionFailed: 'Connection to Monta WMS failed.',
+      footerBrand: 'Elmarc · Feed manager',
+      disclaimer: 'Note: changes here directly affect the live inventory feed. Use with care.'
+    },
+    de: {
+      navGeneral: 'Allgemein',
+      navSettings: 'Einstellungen',
+      navFeeds: 'Feeds',
+      statusActive: 'Aktiv',
+      statusInactive: 'Inaktiv',
+      topbarExpertTitle: 'Expert',
+      topbarExpertSubtitle: 'Bestandsfeed an Expert',
+      topbarSettingsTitle: 'Einstellungen',
+      topbarSettingsSubtitle: 'Allgemeine Integrationen und Einstellungen',
+      feedStatusLabel: 'Feed-Status',
+      feedStatusDesc: 'Aktivieren oder deaktivieren Sie den Expert-Feed. Das manuelle Ausführen über die Schaltfläche unten funktioniert immer, unabhängig von diesem Status.',
+      runFeedBtn: 'Feed jetzt ausführen',
+      viewArticlesBtn: 'Artikelübersicht',
+      runLogIdle: 'Noch nicht manuell ausgeführt.',
+      runLogRunning: 'Feed wird gestartet…',
+      runLogDone: 'Zuletzt manuell ausgeführt: {time}',
+      articlesBadge: 'Demnächst',
+      articlesTitle: 'Artikelübersicht',
+      articlesDesc: 'Hier erscheint die Liste der SKUs aus Monta WMS, mit der Möglichkeit, pro Artikel anzukreuzen, ob der Bestand an Expert gesendet werden soll.',
+      backToExpert: '← Zurück zu Expert',
+      montaTitle: 'Monta WMS-Anbindung',
+      montaDesc: 'Monta authentifiziert mit HTTP Basic Authentication: nur ein Benutzername und Passwort, erstellt im Montaportal. Die API-URL ist fest.',
+      fieldApiUrl: 'API URL',
+      fieldApiUsername: 'API Username',
+      fieldApiPassword: 'API Password',
+      showPassword: 'Anzeigen',
+      hidePassword: 'Verbergen',
+      passwordHint: 'Leer lassen, um das aktuelle Passwort zu behalten.',
+      saveSettingsBtn: 'Einstellungen speichern',
+      testConnectionBtn: 'Verbindung testen',
+      settingsSaveIdle: 'Noch nicht gespeichert.',
+      settingsSaving: 'Wird gespeichert…',
+      settingsSaveDone: 'Gespeichert um {time}.',
+      settingsSaveMissing: 'Bitte Benutzername und Passwort eingeben.',
+      settingsSaveFailed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
+      notConfigured: 'Noch keine Monta-Anbindung eingerichtet.',
+      connectedAs: 'Verbunden als: {user}',
+      statusLoadError: 'Status konnte nicht geladen werden.',
+      testingConnection: 'Verbindung wird getestet…',
+      connectionOk: 'Verbindung zu Monta WMS erfolgreich.',
+      connectionFailed: 'Verbindung zu Monta WMS fehlgeschlagen.',
+      footerBrand: 'Elmarc · Feed manager',
+      disclaimer: 'Achtung: Änderungen hier wirken sich direkt auf den Live-Bestandsfeed aus. Bitte mit Vorsicht verwenden.'
+    }
+  };
+  const localeMap = { nl: 'nl-NL', en: 'en-GB', de: 'de-DE' };
+  let currentLang = 'nl';
+  let currentPage = 'expert';
+
+  function t(key){
+    return translations[currentLang][key];
+  }
+  function formatNow(){
+    return new Date().toLocaleString(localeMap[currentLang], {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Sidebar collapse                                                  */
+  /* ---------------------------------------------------------------- */
+  const app = document.getElementById('app');
+  const toggle = document.getElementById('sidebarToggle');
+
+  toggle.addEventListener('click', () => {
+    app.classList.toggle('collapsed');
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Status-badge bij 'Expert' in het linkermenu                       */
+  /* ---------------------------------------------------------------- */
+  const feedToggle = document.getElementById('feedActiveToggle');
+  const expertNavStatus = document.getElementById('expertNavStatus');
+  const expertNavStatusText = expertNavStatus.querySelector('.nav-status-text');
+  function renderNavStatus(){
+    const active = feedToggle.checked;
+    expertNavStatusText.textContent = active ? t('statusActive') : t('statusInactive');
+    expertNavStatus.classList.toggle('is-inactive', !active);
+  }
+  feedToggle.addEventListener('change', renderNavStatus);
+
+  /* ---------------------------------------------------------------- */
+  /* Feed handmatig draaien — werkt ongeacht de status van het vinkje   */
+  /* ---------------------------------------------------------------- */
+  const runBtn = document.getElementById('runFeedBtn');
+  const runLog = document.getElementById('runLog');
+  const runLogText = document.getElementById('runLogText');
+  let runState = 'idle'; // idle | running | done
+  let runTimestamp = null;
+
+  function renderRunLog(){
+    if(runState === 'running'){
+      runLogText.textContent = t('runLogRunning');
+    } else if(runState === 'done' && runTimestamp){
+      runLogText.textContent = t('runLogDone').replace('{time}', runTimestamp);
+    } else {
+      runLogText.textContent = t('runLogIdle');
+    }
+  }
+
+  runBtn.addEventListener('click', () => {
+    runBtn.disabled = true;
+    runBtn.classList.add('is-running');
+    runLog.classList.add('is-active');
+    runState = 'running';
+    renderRunLog();
+    setTimeout(() => {
+      runState = 'done';
+      runTimestamp = formatNow();
+      renderRunLog();
+      runBtn.disabled = false;
+      runBtn.classList.remove('is-running');
+    }, 1200);
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Overzicht artikelen <-> feedinstellingen (binnen Expert)           */
+  /* ---------------------------------------------------------------- */
+  const settingsView = document.getElementById('expertSettingsView');
+  const articlesView = document.getElementById('expertArticlesView');
+  document.getElementById('viewArticlesBtn').addEventListener('click', () => {
+    settingsView.style.display = 'none';
+    articlesView.style.display = 'block';
+  });
+  document.getElementById('backToSettingsBtn').addEventListener('click', () => {
+    articlesView.style.display = 'none';
+    settingsView.style.display = 'block';
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Paginanavigatie (Instellingen <-> Expert)                          */
+  /* ---------------------------------------------------------------- */
+  const pages = {
+    expert:   document.getElementById('page-expert'),
+    settings: document.getElementById('page-settings')
+  };
+
+  function renderTopbar(){
+    const titleKey = currentPage === 'settings' ? 'topbarSettingsTitle' : 'topbarExpertTitle';
+    const subtitleKey = currentPage === 'settings' ? 'topbarSettingsSubtitle' : 'topbarExpertSubtitle';
+    document.getElementById('pageTitle').textContent = t(titleKey);
+    document.getElementById('pageSubtitle').textContent = t(subtitleKey);
+  }
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      currentPage = item.getAttribute('data-page');
+
+      Object.keys(pages).forEach(key => {
+        pages[key].style.display = (key === currentPage) ? '' : 'none';
+      });
+
+      renderTopbar();
+    });
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Monta WMS instellingen: wachtwoordvelden tonen/verbergen           */
+  /* ---------------------------------------------------------------- */
+  document.querySelectorAll('.password-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.getAttribute('data-target'));
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      btn.textContent = isPassword ? t('hidePassword') : t('showPassword');
+    });
+  });
+  function renderPasswordToggles(){
+    document.querySelectorAll('.password-toggle').forEach(btn => {
+      const input = document.getElementById(btn.getAttribute('data-target'));
+      btn.textContent = (input.type === 'password') ? t('showPassword') : t('hidePassword');
+    });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Monta WMS instellingen: opslaan en testen via Supabase              */
+  /* ---------------------------------------------------------------- */
+  // Deze webapp praat met een Supabase Edge Function die de gegevens
+  // opslaat: de gebruikersnaam in een tabel, het wachtwoord versleuteld in
+  // Supabase Vault. Het wachtwoord verlaat de server nooit richting deze
+  // pagina. De anon key hieronder is bedoeld om publiek in een frontend te
+  // staan (vergelijkbaar met een normale publieke API-sleutel) — de
+  // eigenlijke beveiliging zit in de Edge Function en de database-rechten,
+  // niet in het geheimhouden van deze sleutel.
+  const SUPABASE_URL = 'https://hftenvysinatgeoutvml.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmdGVudnlzaW5hdGdlb3V0dm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4OTY5MDcsImV4cCI6MjEwMDQ3MjkwN30.hE8wmZjrKn3oCpCvj34WZM66MsADU-3pRR-xx7uoB9A';
+  const MONTA_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/monta-settings`;
+  const supabaseHeaders = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+  };
+
+  const montaForm = document.getElementById('montaSettingsForm');
+  const settingsSaveLog = document.getElementById('settingsSaveLog');
+  const settingsSaveLogText = document.getElementById('settingsSaveLogText');
+  const usernameInput = document.getElementById('montaApiUsername');
+  const passwordInput = document.getElementById('montaApiPassword');
+  const connectionStatus = document.getElementById('connectionStatus');
+  const connectionStatusText = document.getElementById('connectionStatusText');
+  const testConnectionBtn = document.getElementById('testConnectionBtn');
+
+  let saveState = 'idle';   // idle | saving | done | error
+  let saveMessageKey = 'settingsSaveIdle';
+  let saveTimestamp = null;
+  let configuredUsername = null;
+
+  function renderSaveLog(){
+    if(saveState === 'saving'){
+      settingsSaveLogText.textContent = t('settingsSaving');
+    } else if(saveState === 'done' && saveTimestamp){
+      settingsSaveLogText.textContent = t('settingsSaveDone').replace('{time}', saveTimestamp);
+    } else if(saveState === 'error'){
+      settingsSaveLogText.textContent = t(saveMessageKey);
+    } else {
+      settingsSaveLogText.textContent = t('settingsSaveIdle');
+    }
+  }
+
+  function renderConnectionStatus(){
+    connectionStatus.classList.remove('is-ok', 'is-error');
+    if(configuredUsername){
+      connectionStatusText.textContent = t('connectedAs').replace('{user}', configuredUsername);
+      connectionStatus.classList.add('is-ok');
+    } else {
+      connectionStatusText.textContent = t('notConfigured');
+    }
+  }
+
+  async function loadMontaStatus(){
+    try {
+      const response = await fetch(MONTA_FUNCTION_URL, { headers: supabaseHeaders });
+      const data = await response.json();
+      configuredUsername = data.configured ? data.username : null;
+      if(data.configured){
+        usernameInput.value = data.username || '';
+        passwordInput.placeholder = '••••••••';
+      }
+      renderConnectionStatus();
+    } catch(err){
+      connectionStatusText.textContent = t('statusLoadError');
+    }
+  }
+
+  montaForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
+
+    if(!username || (!password && !configuredUsername)){
+      saveState = 'error';
+      saveMessageKey = 'settingsSaveMissing';
+      settingsSaveLog.classList.add('is-active');
+      renderSaveLog();
+      return;
+    }
+
+    saveState = 'saving';
+    settingsSaveLog.classList.add('is-active');
+    renderSaveLog();
+
+    try {
+      const response = await fetch(MONTA_FUNCTION_URL, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify(password ? { username, password } : { username })
+      });
+      const data = await response.json();
+      if(response.ok && data.success){
+        saveState = 'done';
+        saveTimestamp = formatNow();
+        configuredUsername = username;
+        passwordInput.value = '';
+        passwordInput.placeholder = '••••••••';
+        renderConnectionStatus();
+      } else {
+        saveState = 'error';
+        saveMessageKey = 'settingsSaveFailed';
+      }
+    } catch(err){
+      saveState = 'error';
+      saveMessageKey = 'settingsSaveFailed';
+    }
+    renderSaveLog();
+  });
+
+  testConnectionBtn.addEventListener('click', async () => {
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
+    const hasFreshCredentials = username && password;
+
+    if(!hasFreshCredentials && !configuredUsername){
+      saveState = 'error';
+      saveMessageKey = 'settingsSaveMissing';
+      settingsSaveLog.classList.add('is-active');
+      renderSaveLog();
+      return;
+    }
+
+    testConnectionBtn.disabled = true;
+    testConnectionBtn.classList.add('is-running');
+    connectionStatus.classList.remove('is-ok', 'is-error');
+    connectionStatusText.textContent = t('testingConnection');
+
+    try {
+      const response = await fetch(`${MONTA_FUNCTION_URL}/test`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify(hasFreshCredentials ? { username, password } : {})
+      });
+      const data = await response.json();
+      if(data.success){
+        connectionStatusText.textContent = t('connectionOk');
+        connectionStatus.classList.add('is-ok');
+      } else {
+        connectionStatusText.textContent = data.message || t('connectionFailed');
+        connectionStatus.classList.add('is-error');
+      }
+    } catch(err){
+      connectionStatusText.textContent = t('connectionFailed');
+      connectionStatus.classList.add('is-error');
+    }
+
+    testConnectionBtn.disabled = false;
+    testConnectionBtn.classList.remove('is-running');
+  });
+
+  loadMontaStatus();
+
+  /* ---------------------------------------------------------------- */
+  /* Taalkeuze                                                          */
+  /* ---------------------------------------------------------------- */
+  function applyLanguage(lang){
+    currentLang = lang;
+
+    document.getElementById('navGeneralLabel').textContent = t('navGeneral');
+    document.getElementById('navSettingsLabel').textContent = t('navSettings');
+    document.getElementById('navFeedsLabel').textContent = t('navFeeds');
+
+    document.getElementById('feedStatusLabel').textContent = t('feedStatusLabel');
+    document.getElementById('feedStatusDesc').textContent = t('feedStatusDesc');
+    document.getElementById('runFeedBtnLabel').textContent = t('runFeedBtn');
+    document.getElementById('viewArticlesBtnLabel').textContent = t('viewArticlesBtn');
+
+    document.getElementById('articlesBadge').textContent = t('articlesBadge');
+    document.getElementById('articlesTitle').textContent = t('articlesTitle');
+    document.getElementById('articlesDesc').textContent = t('articlesDesc');
+    document.getElementById('backToSettingsBtn').textContent = t('backToExpert');
+
+    document.getElementById('montaTitle').textContent = t('montaTitle');
+    document.getElementById('montaDesc').textContent = t('montaDesc');
+    document.getElementById('fieldApiUrlLabel').textContent = t('fieldApiUrl');
+    document.getElementById('fieldApiUsernameLabel').textContent = t('fieldApiUsername');
+    document.getElementById('fieldApiPasswordLabel').textContent = t('fieldApiPassword');
+    document.getElementById('fieldApiPasswordHint').textContent = t('passwordHint');
+    document.getElementById('saveSettingsBtnLabel').textContent = t('saveSettingsBtn');
+    document.getElementById('testConnectionBtnLabel').textContent = t('testConnectionBtn');
+
+    document.getElementById('footerBrandText').innerHTML = 'Elmarc &middot; Feed manager';
+    document.getElementById('footerDisclaimerText').textContent = t('disclaimer');
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+    });
+
+    renderNavStatus();
+    renderRunLog();
+    renderSaveLog();
+    renderConnectionStatus();
+    renderPasswordToggles();
+    renderTopbar();
+  }
+
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyLanguage(btn.getAttribute('data-lang'));
+    });
+  });
+
+  // Initial render
+  applyLanguage(currentLang);
+</script>
+
+</body>
+</html>
