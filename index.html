@@ -432,6 +432,17 @@
   .switch input:checked + .switch-slider::before{
     transform: translateX(18px);
   }
+  .switch-sm{
+    width: 34px;
+    height: 20px;
+  }
+  .switch-sm .switch-slider::before{
+    height: 14px;
+    width: 14px;
+  }
+  .switch-sm input:checked + .switch-slider::before{
+    transform: translateX(14px);
+  }
 
   .divider{
     height: 1px;
@@ -862,14 +873,52 @@
       </div>
 
       <div class="card" id="expertArticlesView" style="display:none;">
-        <div class="placeholder">
-          <span class="badge" id="articlesBadge">Binnenkort</span>
-          <h2 id="articlesTitle">Artikelenoverzicht</h2>
-          <p id="articlesDesc">
-            Hier komt de lijst met SKU's uit Monta WMS te staan, met de mogelijkheid
-            om per artikel aan te vinken of de voorraad naar Expert doorgestuurd moet worden.
-          </p>
+        <h2 class="md-section-title" id="articlesTitle" style="font-size:16px;">Artikelenoverzicht</h2>
+        <p class="settings-desc" id="articlesDesc">
+          Alle artikelen uit Monta WMS. Zet per artikel aan of de voorraad naar Expert doorgestuurd moet worden.
+        </p>
+
+        <div class="divider"></div>
+
+        <div class="md-toolbar">
+          <button type="button" class="btn btn-secondary" id="articlesRefreshBtn">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4v6h6"/>
+                <path d="M20 20v-6h-6"/>
+                <path d="M4.5 15a8 8 0 0 0 14.6 2M19.5 9A8 8 0 0 0 4.9 7"/>
+              </svg>
+            </span>
+            <span class="btn-label" id="articlesRefreshBtnLabel">Verversen</span>
+          </button>
+          <input type="text" class="md-search" id="articlesSearchInput" placeholder="Zoek op SKU of naam…">
         </div>
+
+        <div class="run-log" id="articlesMetaLog">
+          <span class="run-log-dot"></span>
+          <span id="articlesMetaLogText">Nog niet geladen.</span>
+        </div>
+
+        <div class="md-banner md-banner-error" id="articlesErrorBanner" style="display:none;"></div>
+        <div class="md-banner md-banner-info" id="articlesTruncatedBanner" style="display:none;"></div>
+
+        <div class="divider"></div>
+
+        <div class="md-table-wrap">
+          <table class="md-table">
+            <thead>
+              <tr>
+                <th id="colSkuLabel3">SKU</th>
+                <th id="colDescriptionLabel3">Naam</th>
+                <th id="colStockLabel">Voorraad</th>
+                <th id="colActiveLabel">Actief voor feed</th>
+              </tr>
+            </thead>
+            <tbody id="articlesBody"></tbody>
+          </table>
+          <div class="md-empty" id="articlesEmpty" style="display:none;">Geen artikelen gevonden.</div>
+        </div>
+
         <button class="btn btn-link" id="backToSettingsBtn">&larr; Terug naar Expert</button>
       </div>
 
@@ -1029,9 +1078,12 @@
       runLogIdle: 'Nog niet handmatig gedraaid.',
       runLogRunning: 'Feed wordt gestart…',
       runLogDone: 'Laatst handmatig gedraaid: {time}',
-      articlesBadge: 'Binnenkort',
       articlesTitle: 'Artikelenoverzicht',
-      articlesDesc: 'Hier komt de lijst met SKU\'s uit Monta WMS te staan, met de mogelijkheid om per artikel aan te vinken of de voorraad naar Expert doorgestuurd moet worden.',
+      articlesDesc: 'Alle artikelen uit Monta WMS. Zet per artikel aan of de voorraad naar Expert doorgestuurd moet worden.',
+      articlesRefreshBtn: 'Verversen',
+      articlesSearchPlaceholder: 'Zoek op SKU of naam…',
+      colStock: 'Voorraad',
+      colActive: 'Actief voor feed',
       backToExpert: '← Terug naar Expert',
       montaTitle: 'Monta WMS koppeling',
       montaDesc: 'Monta authenticeert met HTTP Basic Authentication: alleen een gebruikersnaam en wachtwoord, aan te maken in het Montaportal. De API-URL ligt vast.',
@@ -1056,8 +1108,8 @@
       connectionFailed: 'Verbinding met Monta WMS mislukt.',
       footerBrand: 'Elmarc · Feed manager',
       disclaimer: 'Let op: wijzigingen hier hebben direct effect op de live voorraadfeed. Gebruik met zorg.',
-      navMasterdata: 'Masterdata',
-      topbarMasterdataTitle: 'Masterdata',
+      navMasterdata: 'Monta Stock',
+      topbarMasterdataTitle: 'Monta Stock',
       topbarMasterdataSubtitle: 'Voorraad per magazijn uit Monta WMS',
       masterdataTitle: 'Voorraad — Elmarc & Elmarc_B2B',
       masterdataDesc: 'Actuele voorraad per magazijn, rechtstreeks opgehaald uit Monta WMS.',
@@ -1097,9 +1149,12 @@
       runLogIdle: 'Not run manually yet.',
       runLogRunning: 'Feed is starting…',
       runLogDone: 'Last run manually: {time}',
-      articlesBadge: 'Coming soon',
       articlesTitle: 'Article overview',
-      articlesDesc: 'This is where the list of SKUs from Monta WMS will appear, letting you tick per article whether its stock should be sent to Expert.',
+      articlesDesc: 'All articles from Monta WMS. Turn on per article whether its stock should be sent to Expert.',
+      articlesRefreshBtn: 'Refresh',
+      articlesSearchPlaceholder: 'Search by SKU or name…',
+      colStock: 'Stock',
+      colActive: 'Active for feed',
       backToExpert: '← Back to Expert',
       montaTitle: 'Monta WMS connection',
       montaDesc: 'Monta authenticates with HTTP Basic Authentication: just a username and password, created in the Monta portal. The API URL is fixed.',
@@ -1124,8 +1179,8 @@
       connectionFailed: 'Connection to Monta WMS failed.',
       footerBrand: 'Elmarc · Feed manager',
       disclaimer: 'Note: changes here directly affect the live inventory feed. Use with care.',
-      navMasterdata: 'Masterdata',
-      topbarMasterdataTitle: 'Masterdata',
+      navMasterdata: 'Monta Stock',
+      topbarMasterdataTitle: 'Monta Stock',
       topbarMasterdataSubtitle: 'Stock per warehouse from Monta WMS',
       masterdataTitle: 'Stock — Elmarc & Elmarc_B2B',
       masterdataDesc: 'Current stock per warehouse, fetched directly from Monta WMS.',
@@ -1165,9 +1220,12 @@
       runLogIdle: 'Noch nicht manuell ausgeführt.',
       runLogRunning: 'Feed wird gestartet…',
       runLogDone: 'Zuletzt manuell ausgeführt: {time}',
-      articlesBadge: 'Demnächst',
       articlesTitle: 'Artikelübersicht',
-      articlesDesc: 'Hier erscheint die Liste der SKUs aus Monta WMS, mit der Möglichkeit, pro Artikel anzukreuzen, ob der Bestand an Expert gesendet werden soll.',
+      articlesDesc: 'Alle Artikel aus Monta WMS. Legen Sie pro Artikel fest, ob der Bestand an Expert gesendet werden soll.',
+      articlesRefreshBtn: 'Aktualisieren',
+      articlesSearchPlaceholder: 'Suche nach SKU oder Name…',
+      colStock: 'Bestand',
+      colActive: 'Aktiv für Feed',
       backToExpert: '← Zurück zu Expert',
       montaTitle: 'Monta WMS-Anbindung',
       montaDesc: 'Monta authentifiziert mit HTTP Basic Authentication: nur ein Benutzername und Passwort, erstellt im Montaportal. Die API-URL ist fest.',
@@ -1192,8 +1250,8 @@
       connectionFailed: 'Verbindung zu Monta WMS fehlgeschlagen.',
       footerBrand: 'Elmarc · Feed manager',
       disclaimer: 'Achtung: Änderungen hier wirken sich direkt auf den Live-Bestandsfeed aus. Bitte mit Vorsicht verwenden.',
-      navMasterdata: 'Masterdata',
-      topbarMasterdataTitle: 'Masterdata',
+      navMasterdata: 'Monta Stock',
+      topbarMasterdataTitle: 'Monta Stock',
       topbarMasterdataSubtitle: 'Bestand pro Lager aus Monta WMS',
       masterdataTitle: 'Bestand — Elmarc & Elmarc_B2B',
       masterdataDesc: 'Aktueller Bestand pro Lager, direkt aus Monta WMS abgerufen.',
@@ -1296,6 +1354,9 @@
   document.getElementById('viewArticlesBtn').addEventListener('click', () => {
     settingsView.style.display = 'none';
     articlesView.style.display = 'block';
+    if(articlesState === 'idle'){
+      loadArticles();
+    }
   });
   document.getElementById('backToSettingsBtn').addEventListener('click', () => {
     articlesView.style.display = 'none';
@@ -1668,6 +1729,188 @@
   });
 
   /* ---------------------------------------------------------------- */
+  /* Expert: overzicht artikelen — lijst uit Monta, met aan/uit-schuifje */
+  /* voor de feed, en zoekfunctie                                       */
+  /* ---------------------------------------------------------------- */
+  const MONTA_ARTICLES_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/monta-articles`;
+
+  const articlesRefreshBtn = document.getElementById('articlesRefreshBtn');
+  const articlesSearchInput = document.getElementById('articlesSearchInput');
+  const articlesMetaLog = document.getElementById('articlesMetaLog');
+  const articlesMetaLogText = document.getElementById('articlesMetaLogText');
+  const articlesErrorBanner = document.getElementById('articlesErrorBanner');
+  const articlesTruncatedBanner = document.getElementById('articlesTruncatedBanner');
+  const articlesBody = document.getElementById('articlesBody');
+  const articlesEmpty = document.getElementById('articlesEmpty');
+
+  let articlesState = 'idle'; // idle | loading | done | error
+  let articlesRows = [];
+  let articlesFetchedAt = null;
+  let articlesTruncated = false;
+  let articlesErrorMessageKey = null;
+  let articlesErrorMessageRaw = null;
+  let articlesSearchTerm = '';
+  const articlesPendingToggles = new Set();
+
+  function filteredArticlesRows(){
+    const term = articlesSearchTerm.trim().toLowerCase();
+    if(!term) return articlesRows;
+    return articlesRows.filter(r =>
+      r.sku.toLowerCase().includes(term) ||
+      (r.description || '').toLowerCase().includes(term)
+    );
+  }
+
+  function renderArticlesMeta(){
+    articlesMetaLog.classList.toggle('is-active', articlesState === 'loading');
+    if(articlesState === 'loading'){
+      articlesMetaLogText.textContent = t('stockLoading');
+    } else if(articlesState === 'done' && articlesFetchedAt){
+      articlesMetaLogText.textContent = t('stockLastUpdated').replace('{time}', articlesFetchedAt);
+    } else if(articlesState === 'error'){
+      articlesMetaLogText.textContent = t('stockMetaError');
+    } else {
+      articlesMetaLogText.textContent = t('stockMetaIdle');
+    }
+  }
+
+  function renderArticlesError(){
+    if(articlesState === 'error'){
+      articlesErrorBanner.style.display = '';
+      articlesErrorBanner.textContent = articlesErrorMessageKey ? t(articlesErrorMessageKey) : (articlesErrorMessageRaw || t('stockGenericError'));
+    } else {
+      articlesErrorBanner.style.display = 'none';
+    }
+    articlesTruncatedBanner.style.display = articlesTruncated ? '' : 'none';
+    if(articlesTruncated){
+      articlesTruncatedBanner.textContent = t('stockTruncatedNotice');
+    }
+  }
+
+  function renderArticlesTable(){
+    const rows = filteredArticlesRows();
+    articlesBody.innerHTML = '';
+
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+
+      const skuTd = document.createElement('td');
+      skuTd.textContent = r.sku;
+
+      const descTd = document.createElement('td');
+      descTd.textContent = r.description;
+
+      const stockTd = document.createElement('td');
+      stockTd.textContent = String(r.stock);
+      stockTd.className = 'md-num';
+
+      const activeTd = document.createElement('td');
+      const label = document.createElement('label');
+      label.className = 'switch switch-sm';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = !!r.active;
+      input.setAttribute('data-sku', r.sku);
+      input.disabled = articlesPendingToggles.has(r.sku);
+      const slider = document.createElement('span');
+      slider.className = 'switch-slider';
+      label.append(input, slider);
+      activeTd.appendChild(label);
+
+      tr.append(skuTd, descTd, stockTd, activeTd);
+      articlesBody.appendChild(tr);
+    });
+
+    articlesEmpty.style.display = rows.length === 0 ? '' : 'none';
+    articlesEmpty.textContent = t('stockEmpty');
+  }
+
+  function renderArticlesUI(){
+    renderArticlesMeta();
+    renderArticlesError();
+    renderArticlesTable();
+  }
+
+  async function loadArticles(){
+    articlesState = 'loading';
+    articlesErrorMessageKey = null;
+    articlesErrorMessageRaw = null;
+    renderArticlesUI();
+
+    try {
+      const response = await fetch(MONTA_ARTICLES_FUNCTION_URL, { headers: supabaseHeaders });
+      const data = await response.json().catch(() => ({}));
+
+      if(!response.ok){
+        articlesState = 'error';
+        if(data && data.error === 'not_configured'){
+          articlesErrorMessageKey = 'stockNotConfigured';
+        } else if(data && data.error === 'unauthorized'){
+          articlesErrorMessageKey = 'stockConnectionError';
+        } else {
+          articlesErrorMessageRaw = (data && data.message) || t('stockGenericError');
+        }
+        renderArticlesUI();
+        return;
+      }
+
+      articlesRows = Array.isArray(data.rows) ? data.rows : [];
+      articlesTruncated = !!data.truncated;
+      articlesFetchedAt = formatNow();
+      articlesState = 'done';
+      renderArticlesUI();
+    } catch (err) {
+      articlesState = 'error';
+      articlesErrorMessageRaw = t('stockGenericError');
+      renderArticlesUI();
+    }
+  }
+
+  async function toggleArticleActive(sku, nextActive){
+    articlesPendingToggles.add(sku);
+    renderArticlesTable();
+
+    try {
+      const response = await fetch(MONTA_ARTICLES_FUNCTION_URL, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({ sku, active: nextActive })
+      });
+      const data = await response.json().catch(() => ({}));
+
+      const row = articlesRows.find(r => r.sku === sku);
+      if(response.ok && data && data.success){
+        if(row) row.active = nextActive;
+      } else if(row){
+        // mislukt: schuifje terugzetten naar de oude stand
+        row.active = !nextActive;
+      }
+    } catch (err) {
+      const row = articlesRows.find(r => r.sku === sku);
+      if(row) row.active = !nextActive;
+    } finally {
+      articlesPendingToggles.delete(sku);
+      renderArticlesTable();
+    }
+  }
+
+  articlesBody.addEventListener('change', (e) => {
+    const input = e.target.closest('input[data-sku]');
+    if(!input) return;
+    const sku = input.getAttribute('data-sku');
+    toggleArticleActive(sku, input.checked);
+  });
+
+  articlesRefreshBtn.addEventListener('click', () => {
+    loadArticles();
+  });
+
+  articlesSearchInput.addEventListener('input', () => {
+    articlesSearchTerm = articlesSearchInput.value;
+    renderArticlesTable();
+  });
+
+  /* ---------------------------------------------------------------- */
   /* Taalkeuze                                                          */
   /* ---------------------------------------------------------------- */
   function applyLanguage(lang){
@@ -1682,9 +1925,14 @@
     document.getElementById('runFeedBtnLabel').textContent = t('runFeedBtn');
     document.getElementById('viewArticlesBtnLabel').textContent = t('viewArticlesBtn');
 
-    document.getElementById('articlesBadge').textContent = t('articlesBadge');
     document.getElementById('articlesTitle').textContent = t('articlesTitle');
     document.getElementById('articlesDesc').textContent = t('articlesDesc');
+    document.getElementById('articlesRefreshBtnLabel').textContent = t('articlesRefreshBtn');
+    document.getElementById('articlesSearchInput').placeholder = t('articlesSearchPlaceholder');
+    document.getElementById('colSkuLabel3').textContent = t('colSku');
+    document.getElementById('colDescriptionLabel3').textContent = t('colDescription');
+    document.getElementById('colStockLabel').textContent = t('colStock');
+    document.getElementById('colActiveLabel').textContent = t('colActive');
     document.getElementById('backToSettingsBtn').textContent = t('backToExpert');
 
     document.getElementById('montaTitle').textContent = t('montaTitle');
@@ -1725,6 +1973,7 @@
     renderPasswordToggles();
     renderTopbar();
     renderStockUI();
+    renderArticlesUI();
   }
 
   document.querySelectorAll('.lang-btn').forEach(btn => {
