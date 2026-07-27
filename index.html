@@ -331,6 +331,23 @@
   .modal-actions{
     margin-top: 18px;
   }
+  .modal-text{
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 4px;
+  }
+  .btn-danger{
+    background: #c0392b;
+    color: #fff;
+  }
+  .btn-danger:hover{
+    background: #a3392b;
+  }
+  /* Specificiteit nodig: .btn-link staat verderop en zou anders winnen. */
+  .btn-link.btn-link-danger{
+    color: #c0392b;
+  }
 
   .sidebar-footer{
     padding: 14px 16px;
@@ -1221,6 +1238,8 @@
              <span id="connSaveLogText">Nog niet opgeslagen.</span>
            </div>
          </form>
+
+         <button type="button" class="btn btn-link btn-link-danger" id="connDeleteBtn">Koppeling verwijderen</button>
        </div>
      </div>
 
@@ -1242,6 +1261,22 @@
       </button>
       <button type="button" class="btn btn-secondary" id="newConnectionCancelBtn">
         <span id="newConnectionCancelLabel">Annuleren</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteConnectionModal">
+  <div class="modal-card">
+    <div class="modal-title" id="deleteConnectionModalTitle">Koppeling verwijderen</div>
+    <div class="modal-text" id="deleteConnectionModalText">—</div>
+    <div class="modal-error" id="deleteConnectionModalError"></div>
+    <div class="actions-row modal-actions">
+      <button type="button" class="btn btn-danger" id="deleteConnectionConfirmBtn">
+        <span id="deleteConnectionConfirmLabel">Definitief verwijderen</span>
+      </button>
+      <button type="button" class="btn btn-secondary" id="deleteConnectionCancelBtn">
+        <span id="deleteConnectionCancelLabel">Annuleren</span>
       </button>
     </div>
   </div>
@@ -1275,6 +1310,11 @@
       newConnectionCancel: 'Annuleren',
       newConnectionNameRequired: 'Geef een naam op.',
       connDesc: 'Vul de API URL, gebruikersnaam en wachtwoord in voor deze koppeling (HTTP Basic Authentication).',
+      deleteConnectionBtn: 'Koppeling verwijderen',
+      deleteConnectionTitle: 'Koppeling verwijderen',
+      deleteConnectionText: 'Weet je zeker dat je "{name}" wilt verwijderen? De opgeslagen inloggegevens worden hierbij definitief gewist. Dit kan niet ongedaan gemaakt worden.',
+      deleteConnectionConfirm: 'Definitief verwijderen',
+      deleteConnectionFailed: 'Verwijderen is niet gelukt. Probeer het opnieuw.',
       feedStatusLabel: 'Feed status',
       feedStatusDesc: 'Zet de Expert-feed actief of inactief. Handmatig draaien via de knop hieronder werkt altijd, ongeacht deze status.',
       runFeedBtn: 'Feed nu draaien',
@@ -1357,6 +1397,11 @@
       newConnectionCancel: 'Cancel',
       newConnectionNameRequired: 'Enter a name.',
       connDesc: 'Enter the API URL, username, and password for this connection (HTTP Basic Authentication).',
+      deleteConnectionBtn: 'Delete connection',
+      deleteConnectionTitle: 'Delete connection',
+      deleteConnectionText: 'Are you sure you want to delete "{name}"? The stored credentials will be permanently erased. This cannot be undone.',
+      deleteConnectionConfirm: 'Delete permanently',
+      deleteConnectionFailed: 'Deleting failed. Please try again.',
       feedStatusLabel: 'Feed status',
       feedStatusDesc: 'Turn the Expert feed on or off. Running it manually with the button below always works, regardless of this status.',
       runFeedBtn: 'Run feed now',
@@ -1439,6 +1484,11 @@
       newConnectionCancel: 'Abbrechen',
       newConnectionNameRequired: 'Bitte einen Namen eingeben.',
       connDesc: 'Geben Sie die API-URL, den Benutzernamen und das Passwort für diese Verbindung ein (HTTP Basic Authentication).',
+      deleteConnectionBtn: 'Verbindung löschen',
+      deleteConnectionTitle: 'Verbindung löschen',
+      deleteConnectionText: 'Möchten Sie "{name}" wirklich löschen? Die gespeicherten Zugangsdaten werden dabei endgültig gelöscht. Dies kann nicht rückgängig gemacht werden.',
+      deleteConnectionConfirm: 'Endgültig löschen',
+      deleteConnectionFailed: 'Löschen fehlgeschlagen. Bitte erneut versuchen.',
       feedStatusLabel: 'Feed-Status',
       feedStatusDesc: 'Aktivieren oder deaktivieren Sie den Expert-Feed. Das manuelle Ausführen über die Schaltfläche unten funktioniert immer, unabhängig von diesem Status.',
       runFeedBtn: 'Feed jetzt ausführen',
@@ -2096,6 +2146,59 @@
     }
   });
 
+  /* ---------------------------------------------------------------- */
+  /* Koppeling verwijderen (met bevestiging)                            */
+  /* ---------------------------------------------------------------- */
+  const deleteConnectionModal = document.getElementById('deleteConnectionModal');
+  const deleteConnectionModalText = document.getElementById('deleteConnectionModalText');
+  const deleteConnectionModalError = document.getElementById('deleteConnectionModalError');
+  const deleteConnectionConfirmBtn = document.getElementById('deleteConnectionConfirmBtn');
+
+  function openDeleteConnectionModal(){
+    if(!connActiveId) return;
+    const conn = customConnections.find(c => c.id === connActiveId);
+    deleteConnectionModalText.textContent = t('deleteConnectionText').replace('{name}', conn ? conn.name : '');
+    deleteConnectionModalError.style.display = 'none';
+    deleteConnectionModal.style.display = 'flex';
+  }
+  function closeDeleteConnectionModal(){
+    deleteConnectionModal.style.display = 'none';
+  }
+
+  document.getElementById('connDeleteBtn').addEventListener('click', openDeleteConnectionModal);
+  document.getElementById('deleteConnectionCancelBtn').addEventListener('click', closeDeleteConnectionModal);
+  deleteConnectionModal.addEventListener('click', (e) => {
+    if(e.target === deleteConnectionModal) closeDeleteConnectionModal();
+  });
+
+  deleteConnectionConfirmBtn.addEventListener('click', async () => {
+    if(!connActiveId) return;
+    deleteConnectionConfirmBtn.disabled = true;
+    try {
+      const response = await fetch(`${CONNECTIONS_FUNCTION_URL}?id=${encodeURIComponent(connActiveId)}`, {
+        method: 'DELETE',
+        headers: supabaseHeaders
+      });
+      const data = await response.json().catch(() => ({}));
+      if(response.ok && data && data.success){
+        closeDeleteConnectionModal();
+        connActiveId = null;
+        await loadConnectionsList();
+        // Terug naar Monta WMS, want de huidige pagina bestaat niet meer.
+        setActiveNav(document.getElementById('navMontaSubitem'));
+        showPage('settings');
+      } else {
+        deleteConnectionModalError.style.display = '';
+        deleteConnectionModalError.textContent = t('deleteConnectionFailed');
+      }
+    } catch(err){
+      deleteConnectionModalError.style.display = '';
+      deleteConnectionModalError.textContent = t('deleteConnectionFailed');
+    } finally {
+      deleteConnectionConfirmBtn.disabled = false;
+    }
+  });
+
   loadConnectionsList();
 
   /* ---------------------------------------------------------------- */
@@ -2495,6 +2598,11 @@
     document.getElementById('connFieldApiPasswordHint').textContent = t('passwordHint');
     document.getElementById('connSaveBtnLabel').textContent = t('saveSettingsBtn');
     document.getElementById('connTestBtnLabel').textContent = t('testConnectionBtn');
+    document.getElementById('connDeleteBtn').textContent = t('deleteConnectionBtn');
+
+    document.getElementById('deleteConnectionModalTitle').textContent = t('deleteConnectionTitle');
+    document.getElementById('deleteConnectionConfirmLabel').textContent = t('deleteConnectionConfirm');
+    document.getElementById('deleteConnectionCancelLabel').textContent = t('newConnectionCancel');
 
     document.getElementById('feedStatusLabel').textContent = t('feedStatusLabel');
     document.getElementById('feedStatusDesc').textContent = t('feedStatusDesc');

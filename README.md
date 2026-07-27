@@ -17,7 +17,9 @@ de hosting voor dat (sub)domein) en het werkt meteen.
     inclusief opslaan en verbinding testen.
   - **Nieuwe koppeling**: maak zelf extra koppelingen aan met een eigen
     naam en API-URL. Elke koppeling krijgt hetzelfde instellingenblad als
-    Monta WMS (API-URL, gebruikersnaam, wachtwoord, opslaan, testen).
+    Monta WMS (API-URL, gebruikersnaam, wachtwoord, opslaan, testen) en
+    kan onderaan dat blad weer verwijderd worden — na een bevestiging,
+    waarbij ook het wachtwoord uit de Vault wordt gewist.
 
 ## Backend
 
