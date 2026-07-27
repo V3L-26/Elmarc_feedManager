@@ -1561,11 +1561,14 @@
   function t(key){
     return translations[currentLang][key];
   }
-  function formatNow(){
-    return new Date().toLocaleString(localeMap[currentLang], {
+  function formatDateTime(value){
+    return new Date(value).toLocaleString(localeMap[currentLang], {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
+  }
+  function formatNow(){
+    return formatDateTime(new Date());
   }
 
   /* ---------------------------------------------------------------- */
@@ -1760,6 +1763,8 @@
 
   let saveState = 'idle';   // idle | saving | done | error
   let saveMessageKey = 'settingsSaveIdle';
+  // Ruwe datum (niet als tekst), zodat het moment bij een taalwissel
+  // opnieuw in de juiste taal opgemaakt kan worden.
   let saveTimestamp = null;
   let configuredUsername = null;
 
@@ -1767,7 +1772,7 @@
     if(saveState === 'saving'){
       settingsSaveLogText.textContent = t('settingsSaving');
     } else if(saveState === 'done' && saveTimestamp){
-      settingsSaveLogText.textContent = t('settingsSaveDone').replace('{time}', saveTimestamp);
+      settingsSaveLogText.textContent = t('settingsSaveDone').replace('{time}', formatDateTime(saveTimestamp));
     } else if(saveState === 'error'){
       settingsSaveLogText.textContent = t(saveMessageKey);
     } else {
@@ -1793,6 +1798,13 @@
       if(data.configured){
         usernameInput.value = data.username || '';
         passwordInput.placeholder = '••••••••';
+        // Toon het echte opslagmoment uit de database, zodat er na een
+        // paginaverversing niet ten onrechte "nog niet opgeslagen" staat.
+        if(data.updatedAt){
+          saveState = 'done';
+          saveTimestamp = data.updatedAt;
+          renderSaveLog();
+        }
       }
       renderConnectionStatus();
     } catch(err){
@@ -1826,7 +1838,7 @@
       const data = await response.json();
       if(response.ok && data.success){
         saveState = 'done';
-        saveTimestamp = formatNow();
+        saveTimestamp = data.updatedAt || new Date();
         configuredUsername = username;
         passwordInput.value = '';
         passwordInput.placeholder = '••••••••';
@@ -1894,7 +1906,7 @@
   let connActiveId = null;
   let connSaveState = 'idle';     // idle | saving | done | error
   let connSaveMessageKey = 'settingsSaveIdle';
-  let connSaveTimestamp = null;
+  let connSaveTimestamp = null;   // ruwe datum, zie saveTimestamp hierboven
   let connConfiguredUsername = null;
 
   const connTitle = document.getElementById('connTitle');
@@ -1912,7 +1924,7 @@
     if(connSaveState === 'saving'){
       connSaveLogText.textContent = t('settingsSaving');
     } else if(connSaveState === 'done' && connSaveTimestamp){
-      connSaveLogText.textContent = t('settingsSaveDone').replace('{time}', connSaveTimestamp);
+      connSaveLogText.textContent = t('settingsSaveDone').replace('{time}', formatDateTime(connSaveTimestamp));
     } else if(connSaveState === 'error'){
       connSaveLogText.textContent = t(connSaveMessageKey);
     } else {
@@ -1969,6 +1981,12 @@
         connPasswordInput.value = '';
         connPasswordInput.placeholder = data.configured ? '••••••••' : '';
         connConfiguredUsername = data.configured ? data.username : null;
+        // Zie loadMontaStatus: opslagmoment uit de database tonen.
+        if(data.configured && data.updatedAt){
+          connSaveState = 'done';
+          connSaveTimestamp = data.updatedAt;
+        }
+        renderConnSaveLog();
       }
       renderConnConnectionStatus();
     } catch(err){
@@ -2019,7 +2037,7 @@
       const data = await response.json().catch(() => ({}));
       if(response.ok && data && data.success){
         connSaveState = 'done';
-        connSaveTimestamp = formatNow();
+        connSaveTimestamp = data.updatedAt || new Date();
         connConfiguredUsername = username;
         connPasswordInput.value = '';
         connPasswordInput.placeholder = '••••••••';
