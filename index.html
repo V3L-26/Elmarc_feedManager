@@ -241,6 +241,97 @@
     border-left: none;
   }
 
+  .nav-item-toggle .nav-caret{
+    margin-left:auto;
+    width:14px;
+    height:14px;
+    display:flex;
+    flex-shrink:0;
+    color: var(--sidebar-text);
+    transition: transform var(--transition);
+  }
+  .nav-item-toggle.expanded .nav-caret{
+    transform: rotate(180deg);
+  }
+  .app.collapsed .nav-item-toggle .nav-caret{
+    display:none;
+  }
+  .nav-submenu{
+    display:none;
+    margin-bottom: 2px;
+  }
+  .nav-submenu.open{
+    display:block;
+  }
+  .app.collapsed .nav-submenu{
+    display:none !important;
+  }
+  .nav-subitem{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding: 8px 12px 8px 42px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sidebar-text);
+    cursor:pointer;
+    margin-bottom: 2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    transition: background var(--transition), color var(--transition);
+  }
+  .nav-subitem:hover{
+    background: var(--sidebar-hover);
+    color: var(--sidebar-text-active);
+  }
+  .nav-subitem.active{
+    background: var(--accent-tint);
+    color: var(--sidebar-text-active);
+    font-weight: 600;
+  }
+  .nav-subitem-add{
+    color: var(--accent-strong);
+  }
+  .nav-subitem-plus{
+    font-weight: 700;
+    flex-shrink:0;
+  }
+
+  /* Nieuwe koppeling: modal */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background: rgba(20,33,61,0.35);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .modal-card{
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: min(420px, 100%);
+    box-shadow: 0 10px 40px rgba(20,33,61,0.25);
+  }
+  .modal-title{
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .modal-error{
+    font-size: 13px;
+    color: #a3392b;
+    margin-top: 8px;
+    display:none;
+  }
+  .modal-actions{
+    margin-top: 18px;
+  }
+
   .sidebar-footer{
     padding: 14px 16px;
     border-top: 1px solid var(--sidebar-border);
@@ -753,14 +844,26 @@
         </span>
         <span class="nav-label" id="navMasterdataLabel">Masterdata</span>
       </div>
-      <div class="nav-item" data-page="settings">
+      <div class="nav-item nav-item-toggle" id="navConnectionsToggle">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.3 3.2a1.9 1.9 0 0 1 3.4 0l.4.9a1.9 1.9 0 0 0 2.2 1l.9-.3a1.9 1.9 0 0 1 2.4 2.4l-.3.9a1.9 1.9 0 0 0 1 2.2l.9.4a1.9 1.9 0 0 1 0 3.4l-.9.4a1.9 1.9 0 0 0-1 2.2l.3.9a1.9 1.9 0 0 1-2.4 2.4l-.9-.3a1.9 1.9 0 0 0-2.2 1l-.4.9a1.9 1.9 0 0 1-3.4 0l-.4-.9a1.9 1.9 0 0 0-2.2-1l-.9.3a1.9 1.9 0 0 1-2.4-2.4l.3-.9a1.9 1.9 0 0 0-1-2.2l-.9-.4a1.9 1.9 0 0 1 0-3.4l.9-.4a1.9 1.9 0 0 0 1-2.2l-.3-.9a1.9 1.9 0 0 1 2.4-2.4l.9.3a1.9 1.9 0 0 0 2.2-1l.4-.9z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
         </span>
-        <span class="nav-label" id="navSettingsLabel">Instellingen</span>
+        <span class="nav-label" id="navConnectionsLabel">Koppelingen</span>
+        <span class="nav-caret">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </span>
+      </div>
+      <div class="nav-submenu" id="connectionsSubmenu">
+        <div class="nav-subitem" data-page="settings" id="navMontaSubitem">Monta WMS</div>
+        <div class="nav-subitem nav-subitem-add" id="addConnectionBtn">
+          <span class="nav-subitem-plus">+</span>
+          <span id="newConnectionLabel">Nieuwe koppeling</span>
+        </div>
       </div>
 
       <div class="nav-section-label" id="navFeedsLabel">Feeds</div>
@@ -1061,6 +1164,85 @@
        </div>
      </div>
 
+     <div id="page-connection" style="display:none;">
+       <div class="card settings-card">
+         <div class="settings-label" id="connTitle">—</div>
+         <div class="settings-desc" id="connDesc">
+           Vul de API URL, gebruikersnaam en wachtwoord in voor deze koppeling (HTTP Basic Authentication).
+         </div>
+
+         <div class="divider"></div>
+
+         <div class="connection-status" id="connConnectionStatus">
+           <span class="run-log-dot"></span>
+           <span id="connConnectionStatusText">Status wordt geladen…</span>
+         </div>
+
+         <div class="divider"></div>
+
+         <form id="connSettingsForm">
+           <div class="form-grid">
+             <label class="form-field form-field-full">
+               <span class="form-field-label" id="connFieldApiUrlLabel">API URL</span>
+               <input type="url" id="connApiUrl" placeholder="https://" autocomplete="off">
+             </label>
+             <label class="form-field">
+               <span class="form-field-label" id="connFieldApiUsernameLabel">API Username</span>
+               <input type="text" id="connApiUsername" autocomplete="off">
+             </label>
+             <label class="form-field">
+               <span class="form-field-label" id="connFieldApiPasswordLabel">API Password</span>
+               <div class="password-wrap">
+                 <input type="password" id="connApiPassword" autocomplete="off">
+                 <button type="button" class="password-toggle" data-target="connApiPassword">Toon</button>
+               </div>
+               <span class="form-field-hint" id="connFieldApiPasswordHint">Laat leeg om het huidige wachtwoord te behouden.</span>
+             </label>
+           </div>
+
+           <div class="divider"></div>
+
+           <div class="actions-row">
+             <button type="submit" class="btn btn-primary">
+               <span class="btn-label" id="connSaveBtnLabel">Instellingen opslaan</span>
+             </button>
+             <button type="button" class="btn btn-secondary" id="connTestBtn">
+               <span class="btn-icon">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                   <path d="M5 13l4 4L19 7"/>
+                 </svg>
+               </span>
+               <span class="btn-label" id="connTestBtnLabel">Verbinding testen</span>
+             </button>
+           </div>
+
+           <div class="run-log" id="connSaveLog">
+             <span class="run-log-dot"></span>
+             <span id="connSaveLogText">Nog niet opgeslagen.</span>
+           </div>
+         </form>
+       </div>
+     </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="newConnectionModal">
+  <div class="modal-card">
+    <div class="modal-title" id="newConnectionModalTitle">Nieuwe koppeling</div>
+    <label class="form-field">
+      <span class="form-field-label" id="newConnectionModalLabel">Naam van de koppeling</span>
+      <input type="text" id="newConnectionNameInput" autocomplete="off">
+    </label>
+    <div class="modal-error" id="newConnectionModalError"></div>
+    <div class="actions-row modal-actions">
+      <button type="button" class="btn btn-primary" id="newConnectionCreateBtn">
+        <span id="newConnectionCreateLabel">Aanmaken</span>
+      </button>
+      <button type="button" class="btn btn-secondary" id="newConnectionCancelBtn">
+        <span id="newConnectionCancelLabel">Annuleren</span>
+      </button>
     </div>
   </div>
 </div>
@@ -1077,14 +1259,22 @@
   const translations = {
     nl: {
       navGeneral: 'Algemeen',
-      navSettings: 'Instellingen',
+      navConnections: 'Koppelingen',
       navFeeds: 'Feeds',
       statusActive: 'Actief',
       statusInactive: 'Inactief',
       topbarExpertTitle: 'Expert',
       topbarExpertSubtitle: 'Voorraadfeed naar Expert',
-      topbarSettingsTitle: 'Instellingen',
-      topbarSettingsSubtitle: 'Algemene koppelingen en instellingen',
+      topbarSettingsTitle: 'Monta WMS',
+      topbarSettingsSubtitle: 'Koppeling-instellingen',
+      topbarConnectionSubtitle: 'Koppeling-instellingen',
+      newConnectionLabel: 'Nieuwe koppeling',
+      newConnectionModalTitle: 'Nieuwe koppeling',
+      newConnectionModalLabel: 'Naam van de koppeling',
+      newConnectionCreate: 'Aanmaken',
+      newConnectionCancel: 'Annuleren',
+      newConnectionNameRequired: 'Geef een naam op.',
+      connDesc: 'Vul de API URL, gebruikersnaam en wachtwoord in voor deze koppeling (HTTP Basic Authentication).',
       feedStatusLabel: 'Feed status',
       feedStatusDesc: 'Zet de Expert-feed actief of inactief. Handmatig draaien via de knop hieronder werkt altijd, ongeacht deze status.',
       runFeedBtn: 'Feed nu draaien',
@@ -1115,6 +1305,7 @@
       settingsSaveMissing: 'Vul een gebruikersnaam en wachtwoord in.',
       settingsSaveFailed: 'Opslaan is niet gelukt. Probeer het opnieuw.',
       notConfigured: 'Nog geen Monta-koppeling ingesteld.',
+      connNotConfigured: 'Nog geen koppeling ingesteld.',
       connectedAs: 'Gekoppeld als: {user}',
       statusLoadError: 'Kon status niet laden.',
       testingConnection: 'Verbinding wordt getest…',
@@ -1150,14 +1341,22 @@
     },
     en: {
       navGeneral: 'General',
-      navSettings: 'Settings',
+      navConnections: 'Connections',
       navFeeds: 'Feeds',
       statusActive: 'Active',
       statusInactive: 'Inactive',
       topbarExpertTitle: 'Expert',
       topbarExpertSubtitle: 'Inventory feed to Expert',
-      topbarSettingsTitle: 'Settings',
-      topbarSettingsSubtitle: 'General integrations and settings',
+      topbarSettingsTitle: 'Monta WMS',
+      topbarSettingsSubtitle: 'Connection settings',
+      topbarConnectionSubtitle: 'Connection settings',
+      newConnectionLabel: 'New connection',
+      newConnectionModalTitle: 'New connection',
+      newConnectionModalLabel: 'Connection name',
+      newConnectionCreate: 'Create',
+      newConnectionCancel: 'Cancel',
+      newConnectionNameRequired: 'Enter a name.',
+      connDesc: 'Enter the API URL, username, and password for this connection (HTTP Basic Authentication).',
       feedStatusLabel: 'Feed status',
       feedStatusDesc: 'Turn the Expert feed on or off. Running it manually with the button below always works, regardless of this status.',
       runFeedBtn: 'Run feed now',
@@ -1188,6 +1387,7 @@
       settingsSaveMissing: 'Enter a username and password.',
       settingsSaveFailed: 'Saving failed. Please try again.',
       notConfigured: 'No Monta connection configured yet.',
+      connNotConfigured: 'No connection configured yet.',
       connectedAs: 'Connected as: {user}',
       statusLoadError: 'Could not load status.',
       testingConnection: 'Testing connection…',
@@ -1223,14 +1423,22 @@
     },
     de: {
       navGeneral: 'Allgemein',
-      navSettings: 'Einstellungen',
+      navConnections: 'Verbindungen',
       navFeeds: 'Feeds',
       statusActive: 'Aktiv',
       statusInactive: 'Inaktiv',
       topbarExpertTitle: 'Expert',
       topbarExpertSubtitle: 'Bestandsfeed an Expert',
-      topbarSettingsTitle: 'Einstellungen',
-      topbarSettingsSubtitle: 'Allgemeine Integrationen und Einstellungen',
+      topbarSettingsTitle: 'Monta WMS',
+      topbarSettingsSubtitle: 'Verbindungseinstellungen',
+      topbarConnectionSubtitle: 'Verbindungseinstellungen',
+      newConnectionLabel: 'Neue Verbindung',
+      newConnectionModalTitle: 'Neue Verbindung',
+      newConnectionModalLabel: 'Name der Verbindung',
+      newConnectionCreate: 'Erstellen',
+      newConnectionCancel: 'Abbrechen',
+      newConnectionNameRequired: 'Bitte einen Namen eingeben.',
+      connDesc: 'Geben Sie die API-URL, den Benutzernamen und das Passwort für diese Verbindung ein (HTTP Basic Authentication).',
       feedStatusLabel: 'Feed-Status',
       feedStatusDesc: 'Aktivieren oder deaktivieren Sie den Expert-Feed. Das manuelle Ausführen über die Schaltfläche unten funktioniert immer, unabhängig von diesem Status.',
       runFeedBtn: 'Feed jetzt ausführen',
@@ -1261,6 +1469,7 @@
       settingsSaveMissing: 'Bitte Benutzername und Passwort eingeben.',
       settingsSaveFailed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
       notConfigured: 'Noch keine Monta-Anbindung eingerichtet.',
+      connNotConfigured: 'Noch keine Verbindung eingerichtet.',
       connectedAs: 'Verbunden als: {user}',
       statusLoadError: 'Status konnte nicht geladen werden.',
       testingConnection: 'Verbindung wird getestet…',
@@ -1389,7 +1598,8 @@
   const pages = {
     expert:     document.getElementById('page-expert'),
     settings:   document.getElementById('page-settings'),
-    masterdata: document.getElementById('page-masterdata')
+    masterdata: document.getElementById('page-masterdata'),
+    connection: document.getElementById('page-connection')
   };
 
   const topbarKeysByPage = {
@@ -1399,27 +1609,57 @@
   };
 
   function renderTopbar(){
+    if(currentPage === 'connection'){
+      const conn = customConnections.find(c => c.id === connActiveId);
+      document.getElementById('pageTitle').textContent = conn ? conn.name : '—';
+      document.getElementById('pageSubtitle').textContent = t('topbarConnectionSubtitle');
+      return;
+    }
     const [titleKey, subtitleKey] = topbarKeysByPage[currentPage] || topbarKeysByPage.expert;
     document.getElementById('pageTitle').textContent = t(titleKey);
     document.getElementById('pageSubtitle').textContent = t(subtitleKey);
   }
 
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => {
-      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      currentPage = item.getAttribute('data-page');
+  function setActiveNav(el){
+    document.querySelectorAll('.nav-item, .nav-subitem').forEach(n => n.classList.remove('active'));
+    if(el) el.classList.add('active');
+  }
 
-      Object.keys(pages).forEach(key => {
-        pages[key].style.display = (key === currentPage) ? '' : 'none';
-      });
-
-      renderTopbar();
-
-      if(currentPage === 'masterdata' && stockState === 'idle'){
-        loadStock(false);
-      }
+  function showPage(pageKey){
+    currentPage = pageKey;
+    Object.keys(pages).forEach(key => {
+      pages[key].style.display = (key === currentPage) ? '' : 'none';
     });
+    renderTopbar();
+    if(currentPage === 'masterdata' && stockState === 'idle'){
+      loadStock(false);
+    }
+  }
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    item.addEventListener('click', () => {
+      setActiveNav(item);
+      showPage(item.getAttribute('data-page'));
+    });
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Koppelingen: submenu uitklappen                                    */
+  /* ---------------------------------------------------------------- */
+  const connectionsToggle = document.getElementById('navConnectionsToggle');
+  const connectionsSubmenu = document.getElementById('connectionsSubmenu');
+  let connectionsSubmenuOpen = false;
+
+  function toggleConnectionsSubmenu(force){
+    connectionsSubmenuOpen = typeof force === 'boolean' ? force : !connectionsSubmenuOpen;
+    connectionsSubmenu.classList.toggle('open', connectionsSubmenuOpen);
+    connectionsToggle.classList.toggle('expanded', connectionsSubmenuOpen);
+  }
+  connectionsToggle.addEventListener('click', () => toggleConnectionsSubmenu());
+
+  document.getElementById('navMontaSubitem').addEventListener('click', (e) => {
+    setActiveNav(e.currentTarget);
+    showPage('settings');
   });
 
   /* ---------------------------------------------------------------- */
@@ -1594,6 +1834,269 @@
   });
 
   loadMontaStatus();
+
+  /* ---------------------------------------------------------------- */
+  /* Koppelingen: generieke extra koppelingen (naast Monta WMS)         */
+  /* ---------------------------------------------------------------- */
+  const CONNECTIONS_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/connections-settings`;
+
+  let customConnections = [];
+  let connActiveId = null;
+  let connSaveState = 'idle';     // idle | saving | done | error
+  let connSaveMessageKey = 'settingsSaveIdle';
+  let connSaveTimestamp = null;
+  let connConfiguredUsername = null;
+
+  const connTitle = document.getElementById('connTitle');
+  const connApiUrlInput = document.getElementById('connApiUrl');
+  const connUsernameInput = document.getElementById('connApiUsername');
+  const connPasswordInput = document.getElementById('connApiPassword');
+  const connConnectionStatus = document.getElementById('connConnectionStatus');
+  const connConnectionStatusText = document.getElementById('connConnectionStatusText');
+  const connSaveLog = document.getElementById('connSaveLog');
+  const connSaveLogText = document.getElementById('connSaveLogText');
+  const connForm = document.getElementById('connSettingsForm');
+  const connTestBtn = document.getElementById('connTestBtn');
+
+  function renderConnSaveLog(){
+    if(connSaveState === 'saving'){
+      connSaveLogText.textContent = t('settingsSaving');
+    } else if(connSaveState === 'done' && connSaveTimestamp){
+      connSaveLogText.textContent = t('settingsSaveDone').replace('{time}', connSaveTimestamp);
+    } else if(connSaveState === 'error'){
+      connSaveLogText.textContent = t(connSaveMessageKey);
+    } else {
+      connSaveLogText.textContent = t('settingsSaveIdle');
+    }
+  }
+
+  function renderConnConnectionStatus(){
+    connConnectionStatus.classList.remove('is-ok', 'is-error');
+    if(connConfiguredUsername){
+      connConnectionStatusText.textContent = t('connectedAs').replace('{user}', connConfiguredUsername);
+      connConnectionStatus.classList.add('is-ok');
+    } else {
+      connConnectionStatusText.textContent = t('connNotConfigured');
+    }
+  }
+
+  function renderConnectionsSubmenu(){
+    document.querySelectorAll('.nav-subitem-dynamic').forEach(n => n.remove());
+    const addBtn = document.getElementById('addConnectionBtn');
+    customConnections.forEach(conn => {
+      const item = document.createElement('div');
+      item.className = 'nav-subitem nav-subitem-dynamic';
+      item.dataset.connectionId = conn.id;
+      item.textContent = conn.name;
+      if(currentPage === 'connection' && connActiveId === conn.id){
+        item.classList.add('active');
+      }
+      item.addEventListener('click', () => openConnectionPage(conn.id));
+      connectionsSubmenu.insertBefore(item, addBtn);
+    });
+  }
+
+  async function loadConnectionsList(){
+    try {
+      const response = await fetch(CONNECTIONS_FUNCTION_URL, { headers: supabaseHeaders });
+      const data = await response.json().catch(() => ({}));
+      customConnections = Array.isArray(data.connections) ? data.connections : [];
+      renderConnectionsSubmenu();
+    } catch(err){
+      // Submenu blijft dan beperkt tot Monta WMS + Nieuwe koppeling.
+    }
+  }
+
+  async function loadConnectionStatus(id){
+    connConfiguredUsername = null;
+    connConnectionStatusText.textContent = t('statusLoadError'); // fallback, wordt direct overschreven bij succes
+    try {
+      const response = await fetch(`${CONNECTIONS_FUNCTION_URL}?id=${encodeURIComponent(id)}`, { headers: supabaseHeaders });
+      const data = await response.json().catch(() => ({}));
+      if(response.ok && data){
+        connApiUrlInput.value = data.apiUrl || '';
+        connUsernameInput.value = data.username || '';
+        connPasswordInput.value = '';
+        connPasswordInput.placeholder = data.configured ? '••••••••' : '';
+        connConfiguredUsername = data.configured ? data.username : null;
+      }
+      renderConnConnectionStatus();
+    } catch(err){
+      connConnectionStatusText.textContent = t('statusLoadError');
+    }
+  }
+
+  function openConnectionPage(id){
+    connActiveId = id;
+    const conn = customConnections.find(c => c.id === id);
+    connTitle.textContent = conn ? conn.name : '—';
+    connSaveState = 'idle';
+    renderConnSaveLog();
+    setActiveNav(document.querySelector(`.nav-subitem[data-connection-id="${id}"]`));
+    toggleConnectionsSubmenu(true);
+    showPage('connection');
+    loadConnectionStatus(id);
+  }
+
+  connForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if(!connActiveId) return;
+    const conn = customConnections.find(c => c.id === connActiveId);
+    const apiUrl = connApiUrlInput.value.trim();
+    const username = connUsernameInput.value.trim();
+    const password = connPasswordInput.value;
+
+    if(!apiUrl || !username || (!password && !connConfiguredUsername)){
+      connSaveState = 'error';
+      connSaveMessageKey = 'settingsSaveMissing';
+      connSaveLog.classList.add('is-active');
+      renderConnSaveLog();
+      return;
+    }
+
+    connSaveState = 'saving';
+    connSaveLog.classList.add('is-active');
+    renderConnSaveLog();
+
+    try {
+      const response = await fetch(CONNECTIONS_FUNCTION_URL, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify(password
+          ? { id: connActiveId, name: conn ? conn.name : '', apiUrl, username, password }
+          : { id: connActiveId, name: conn ? conn.name : '', apiUrl, username })
+      });
+      const data = await response.json().catch(() => ({}));
+      if(response.ok && data && data.success){
+        connSaveState = 'done';
+        connSaveTimestamp = formatNow();
+        connConfiguredUsername = username;
+        connPasswordInput.value = '';
+        connPasswordInput.placeholder = '••••••••';
+        renderConnConnectionStatus();
+        if(conn){
+          conn.apiUrl = apiUrl;
+          conn.username = username;
+          conn.configured = true;
+        }
+      } else {
+        connSaveState = 'error';
+        connSaveMessageKey = 'settingsSaveFailed';
+      }
+    } catch(err){
+      connSaveState = 'error';
+      connSaveMessageKey = 'settingsSaveFailed';
+    }
+    renderConnSaveLog();
+  });
+
+  connTestBtn.addEventListener('click', async () => {
+    if(!connActiveId) return;
+    const apiUrl = connApiUrlInput.value.trim();
+    const username = connUsernameInput.value.trim();
+    const password = connPasswordInput.value;
+    const hasFreshCredentials = apiUrl && username && password;
+
+    if(!hasFreshCredentials && !connConfiguredUsername){
+      connSaveState = 'error';
+      connSaveMessageKey = 'settingsSaveMissing';
+      connSaveLog.classList.add('is-active');
+      renderConnSaveLog();
+      return;
+    }
+
+    connTestBtn.disabled = true;
+    connTestBtn.classList.add('is-running');
+    connConnectionStatus.classList.remove('is-ok', 'is-error');
+    connConnectionStatusText.textContent = t('testingConnection');
+
+    try {
+      const response = await fetch(`${CONNECTIONS_FUNCTION_URL}/test`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify(hasFreshCredentials ? { apiUrl, username, password } : { id: connActiveId })
+      });
+      const data = await response.json().catch(() => ({}));
+      if(data.success){
+        connConnectionStatusText.textContent = data.message || t('connectionOk');
+        connConnectionStatus.classList.add('is-ok');
+      } else {
+        connConnectionStatusText.textContent = data.message || t('connectionFailed');
+        connConnectionStatus.classList.add('is-error');
+      }
+    } catch(err){
+      connConnectionStatusText.textContent = t('connectionFailed');
+      connConnectionStatus.classList.add('is-error');
+    }
+
+    connTestBtn.disabled = false;
+    connTestBtn.classList.remove('is-running');
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Nieuwe koppeling aanmaken (modal)                                  */
+  /* ---------------------------------------------------------------- */
+  const newConnectionModal = document.getElementById('newConnectionModal');
+  const newConnectionNameInput = document.getElementById('newConnectionNameInput');
+  const newConnectionModalError = document.getElementById('newConnectionModalError');
+  const newConnectionCreateBtn = document.getElementById('newConnectionCreateBtn');
+
+  function openNewConnectionModal(){
+    newConnectionNameInput.value = '';
+    newConnectionModalError.style.display = 'none';
+    newConnectionModal.style.display = 'flex';
+    newConnectionNameInput.focus();
+  }
+  function closeNewConnectionModal(){
+    newConnectionModal.style.display = 'none';
+  }
+
+  document.getElementById('addConnectionBtn').addEventListener('click', openNewConnectionModal);
+  document.getElementById('newConnectionCancelBtn').addEventListener('click', closeNewConnectionModal);
+  newConnectionModal.addEventListener('click', (e) => {
+    if(e.target === newConnectionModal) closeNewConnectionModal();
+  });
+  newConnectionNameInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      newConnectionCreateBtn.click();
+    } else if(e.key === 'Escape'){
+      closeNewConnectionModal();
+    }
+  });
+
+  newConnectionCreateBtn.addEventListener('click', async () => {
+    const name = newConnectionNameInput.value.trim();
+    if(!name){
+      newConnectionModalError.style.display = '';
+      newConnectionModalError.textContent = t('newConnectionNameRequired');
+      return;
+    }
+    newConnectionCreateBtn.disabled = true;
+    try {
+      const response = await fetch(CONNECTIONS_FUNCTION_URL, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({ name })
+      });
+      const data = await response.json().catch(() => ({}));
+      if(response.ok && data && data.success){
+        closeNewConnectionModal();
+        await loadConnectionsList();
+        openConnectionPage(data.id);
+      } else {
+        newConnectionModalError.style.display = '';
+        newConnectionModalError.textContent = t('settingsSaveFailed');
+      }
+    } catch(err){
+      newConnectionModalError.style.display = '';
+      newConnectionModalError.textContent = t('settingsSaveFailed');
+    } finally {
+      newConnectionCreateBtn.disabled = false;
+    }
+  });
+
+  loadConnectionsList();
 
   /* ---------------------------------------------------------------- */
   /* Masterdata: voorraad per magazijn + gecombineerd, live uit Monta   */
@@ -1976,8 +2479,22 @@
     currentLang = lang;
 
     document.getElementById('navGeneralLabel').textContent = t('navGeneral');
-    document.getElementById('navSettingsLabel').textContent = t('navSettings');
+    document.getElementById('navConnectionsLabel').textContent = t('navConnections');
+    document.getElementById('newConnectionLabel').textContent = t('newConnectionLabel');
     document.getElementById('navFeedsLabel').textContent = t('navFeeds');
+
+    document.getElementById('newConnectionModalTitle').textContent = t('newConnectionModalTitle');
+    document.getElementById('newConnectionModalLabel').textContent = t('newConnectionModalLabel');
+    document.getElementById('newConnectionCreateLabel').textContent = t('newConnectionCreate');
+    document.getElementById('newConnectionCancelLabel').textContent = t('newConnectionCancel');
+
+    document.getElementById('connDesc').textContent = t('connDesc');
+    document.getElementById('connFieldApiUrlLabel').textContent = t('fieldApiUrl');
+    document.getElementById('connFieldApiUsernameLabel').textContent = t('fieldApiUsername');
+    document.getElementById('connFieldApiPasswordLabel').textContent = t('fieldApiPassword');
+    document.getElementById('connFieldApiPasswordHint').textContent = t('passwordHint');
+    document.getElementById('connSaveBtnLabel').textContent = t('saveSettingsBtn');
+    document.getElementById('connTestBtnLabel').textContent = t('testConnectionBtn');
 
     document.getElementById('feedStatusLabel').textContent = t('feedStatusLabel');
     document.getElementById('feedStatusDesc').textContent = t('feedStatusDesc');
@@ -2033,6 +2550,8 @@
     renderTopbar();
     renderStockUI();
     renderArticlesUI();
+    renderConnSaveLog();
+    renderConnConnectionStatus();
   }
 
   document.querySelectorAll('.lang-btn').forEach(btn => {
